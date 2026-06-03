@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+    <meta charset="UTF-8">
+    <title>Sklad Nástrojů | Všechna Střediska v27</title>
+    <style>
+        :root {
+            --bg: #0f172a; --card: #1e293b; --accent: #38bdf8; --text: #f1f5f9; --success: #22c55e; --error: #ef4444; --border: #334155;
+        }
+        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 20px; }
+        .container { max-width: 1000px; margin: 0 auto; }
+        
+        .strediska-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; margin-bottom: 30px; }
+        .stredisko-btn { 
+            background: var(--card); border: 2px solid var(--border); border-radius: 12px; padding: 20px 10px; 
+            color: white; font-weight: bold; text-align: center; cursor: pointer; transition: all 0.2s; font-size: 1.1rem;
+        }
+        .stredisko-btn:hover { border-color: var(--accent); background: #2d3a6d; transform: translateY(-2px); }
+        .stredisko-btn.active { border-color: var(--accent); background: var(--accent); color: #000; }
+
+        #main-content { display: none; }
+        
+        input#search { width: 100%; background: var(--card); border: 1px solid var(--border); padding: 15px; border-radius: 12px; color: white; margin-bottom: 30px; outline: none; box-sizing: border-box; font-size: 1rem; }
+
+        .category-section { margin-bottom: 10px; border-radius: 12px; overflow: hidden; border: 1px solid var(--border); }
+        .category-header { 
+            background: #1e294b; padding: 15px 20px; cursor: pointer;
+            display: flex; justify-content: space-between; align-items: center;
+            transition: background 0.2s;
+        }
+        .category-header:hover { background: #2d3a6d; }
+        .category-title { font-weight: 800; color: var(--accent); text-transform: uppercase; letter-spacing: 1px; }
+
+        .category-content { display: none; padding: 15px; background: rgba(15, 23, 42, 0.3); }
+        .category-section.open .category-content { display: block; }
+        .category-section.open .category-header { border-bottom: 1px solid var(--border); background: #2d3a6d; }
+        .category-header::after { content: '▼'; font-size: 0.8rem; transition: transform 0.3s; color: var(--accent); }
+        .category-section.open .category-header::after { transform: rotate(180deg); }
+
+        .tool-card { 
+            background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 15px; margin-bottom: 10px; 
+            display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 10px; cursor: pointer;
+        }
+        .tool-card.active { border-color: var(--accent); background: #1e294b; }
+        .tool-name h3 { margin: 0; font-size: 1.1rem; color: #fff; }
+        .total-val { display: block; font-size: 1.4rem; font-weight: 800; color: var(--success); text-align: right; }
+        .total-label { font-size: 0.6rem; color: #64748b; text-transform: uppercase; text-align: right; }
+
+        .tool-details { display: none; grid-column: 1 / -1; padding-top: 20px; border-top: 1px solid var(--border); margin-top: 10px; }
+        .tool-card.active .tool-details { display: block; }
+
+        .visual-grid { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 10px; padding: 15px; background: rgba(0,0,0,0.2); border-radius: 8px; margin-bottom: 20px; }
+        .segment-unit { display: flex; flex-direction: column; align-items: center; gap: 5px; }
+        .tool-block { background: linear-gradient(180deg, #94a3b8 0%, #475569 100%); border-radius: 3px; display: flex; align-items: center; justify-content: center; min-height: 40px; border: 1px solid #334155; }
+        .len-label { font-size: 0.75rem; font-weight: bold; color: #fff; }
+        .count-badge { background: var(--accent); color: #000; padding: 1px 6px; border-radius: 8px; font-size: 0.7rem; font-weight: 800; }
+
+        .calc-section { background: rgba(15, 23, 42, 0.6); padding: 15px; border-radius: 8px; border: 1px solid var(--border); }
+        .calc-section h4 { margin: 0 0 10px 0; font-size: 0.9rem; color: var(--accent); text-transform: uppercase; }
+        .calc-input-group { display: flex; gap: 10px; margin-bottom: 12px; }
+        .calc-input { background: #0f172a; border: 1px solid var(--border); padding: 8px 12px; border-radius: 6px; color: white; font-size: 0.9rem; width: 150px; outline: none; }
+        .calc-input:focus { border-color: var(--accent); }
+        
+        .calc-result-container { display: flex; flex-direction: column; gap: 8px; }
+        .msg { padding: 12px; border-radius: 6px; font-size: 0.9rem; font-weight: 500; line-height: 1.4; display: none; }
+        .msg.green { display: block; background: rgba(34, 197, 94, 0.15); border: 1px solid var(--success); color: #4ade80; }
+        .msg.red { display: block; background: rgba(239, 68, 68, 0.15); border: 1px solid var(--error); color: #f87171; }
+        
+        .status-msg { text-align: center; color: var(--accent); font-style: italic; margin-top: 20px; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header><h1 style="text-align: center; margin-bottom: 20px; letter-spacing: 2px;">SKLAD NÁSTROJŮ</h1></header>
+    
+    <div class="strediska-grid">
+        <div class="stredisko-btn" id="btn-Libřice" onclick="vybratStredisko('Libřice')">Libřice</div>
+        <div class="stredisko-btn" id="btn-Hlízov" onclick="vybratStredisko('Hlízov')">Hlízov</div>
+        <div class="stredisko-btn" id="btn-Divec" onclick="vybratStredisko('Divec')">Divec</div>
+        <div class="stredisko-btn" id="btn-Letohrad" onclick="vybratStredisko('Letohrad')">Letohrad</div>
+        <div class="stredisko-btn" id="btn-Nysa" onclick="vybratStredisko('Nysa')">Nysa</div>
+    </div>
+
+    <div id="main-content">
+        <input type="text" id="search" placeholder="Hledej nástroj..." onkeyup="filter()">
+        <div id="app">Vyberte středisko výše...</div>
+    </div>
+</div>
+
+<script>
+    const STREDISKA_URLS = {
+        'Libřice': 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQLOxzYXUfhW8mKYWdiBO9_vDm060mv5ZMNexdME1ugVVvAgkIXDczM-W-gXe7j5WIFXbtVOBXWGRi_/pub?output=tsv',
+        'Hlízov': 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQK5U_ZhXHE1fub2qAPe_7KC1GyuFOPoDpjXC2ym4aKy5gC8QUZOoPN2W21VpayWMG6yzRNNrO_JTTP/pub?gid=0&single=true&output=tsv',
+        'Divec': 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ_NsiPoqW6EeNs0XhjuYUb9Fm-egy9cCRkejlYy831cPhVXFfbYg3xklKqomWgrlQzt6bM5gzTQRLG/pub?output=tsv',
+        'Letohrad': 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTqvW2IAQ3uK8bxm2IJhLCNEwlbx6jbfQbO0FxMpKtMvtVUp9ltY2T1lvpkY-YYKGLju6T5ExJazyV8/pub?output=tsv',
+        'Nysa': 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRbQaOHHj8Ilu54sFOroBxzWmx1gD9onrR1ENpOqssh2Nl6-cQDxmNuG3diREHx6w05RatY79Sbl13m/pub?output=tsv'
+    };
+    
+    let globalData = {}; 
+
+    async function vybratStredisko(jmenoStrediska) {
+        const tsvUrl = STREDISKA_URLS[jmenoStrediska];
+        if (!tsvUrl) { alert(`Středisko ${jmenoStrediska} nemá přiřazený odkaz.`); return; }
+
+        document.querySelectorAll('.stredisko-btn').forEach(btn => btn.classList.remove('active'));
+        document.getElementById(`btn-${jmenoStrediska}`).classList.add('active');
+
+        document.getElementById('main-content').style.display = 'block';
+        document.getElementById('search').value = '';
+        document.getElementById('app').innerHTML = `<div class="status-msg">Načítám data pro středisko ${jmenoStrediska}...</div>`;
+
+        try {
+            const response = await fetch(tsvUrl);
+            const text = await response.text();
+            const lines = text.split(/\r?\n/).filter(l => l.trim() !== "");
+            const rows = lines.slice(1);
+            const inventory = {};
+
+            rows.forEach(row => {
+                const cols = row.split('\t');
+                if (cols.length < 3) return;
+                const name = cols[0].trim();
+                const lengthValue = parseFloat(cols[1].replace(',', '.'));
+                const category = cols[2] ? cols[2].trim() : "Nezařazeno";
+                if (!name || isNaN(lengthValue)) return;
+                if (!inventory[category]) inventory[category] = {};
+                if (!inventory[category][name]) inventory[category][name] = { total: 0, segments: {} };
+                inventory[category][name].total += lengthValue;
+                inventory[category][name].segments[lengthValue] = (inventory[category][name].segments[lengthValue] || 0) + 1;
+            });
+
+            globalData = inventory;
+            render(inventory);
+        } catch (e) {
+            document.getElementById('app').innerHTML = `<div class="msg red" style="display:block">Chyba při načítání dat pro středisko "${jmenoStrediska}".</div>`;
+        }
+    }
+
+    function render(data) {
+        const app = document.getElementById('app');
+        let html = '';
+        const categories = Object.keys(data).sort();
+        if (categories.length === 0) {
+            app.innerHTML = '<div class="status-msg">Na tomto středisku nebyly nalezeny žádné nástroje.</div>';
+            return;
+        }
+        categories.forEach(catName => {
+            const tools = data[catName];
+            html += `<div class="category-section"><div class="category-header" onclick="toggleCategory(this.parentElement)"><div class="category-title">${catName}</div></div><div class="category-content">`;
+            Object.keys(tools).sort().forEach(toolName => {
+                const tool = tools[toolName];
+                const sortedLengths = Object.keys(tool.segments).sort((a, b) => parseFloat(a) - parseFloat(b));
+                let blocksHtml = '';
+                sortedLengths.forEach(len => {
+                    const count = tool.segments[len];
+                    const width = Math.max(parseFloat(len) * 0.4, 30);
+                    blocksHtml += `<div class="segment-unit"><div class="tool-block" style="width: ${width}px;"><span class="len-label">${len}</span></div><span class="count-badge">${count}x</span></div>`;
+                });
+                const safeId = toolName.replace(/[^a-zA-Z0-9]/g, '_');
+                html += `<div class="tool-card" data-n="${toolName.toLowerCase()}" onclick="event.stopPropagation(); toggleToolCard(this)">
+                    <div class="tool-name"><h3>${toolName}</h3></div>
+                    <div class="total-box"><span class="total-label">CELKEM</span><span class="total-val">${Math.round(tool.total)} mm</span></div>
+                    <div class="tool-details" onclick="event.stopPropagation();">
+                        <div class="visual-grid">${blocksHtml}</div>
+                        <div class="calc-section">
+                            <h4>Ověření požadované délky</h4>
+                            <div class="calc-input-group">
+                                <input type="number" class="calc-input" id="input-${safeId}" placeholder="Zadejte délku v mm"
+                                    onkeydown="if(event.key==='Enter') calculateComposition('${catName}', '${toolName}', '${safeId}')">
+                                <button class="count-badge" style="border:none; cursor:pointer; padding: 0 15px;"
+                                    onclick="calculateComposition('${catName}', '${toolName}', '${safeId}')">Spočítat</button>
+                            </div>
+                            <div class="calc-result-container" id="result-container-${safeId}"></div>
+                        </div>
+                    </div>
+                </div>`;
+            });
+            html += `</div></div>`;
+        });
+        app.innerHTML = html;
+    }
+
+    function toggleCategory(el) { el.classList.toggle('open'); }
+    function toggleToolCard(card) { card.classList.toggle('active'); }
+
+    function getInventoryArray(segmentsObj) {
+        let arr = [];
+        Object.keys(segmentsObj).forEach(size => {
+            let s = parseFloat(size);
+            for (let i = 0; i < segmentsObj[size]; i++) { arr.push(s); }
+        });
+        return arr.sort((a, b) => b - a);
+    }
+
+    // Optimalizovaný knapsack — hledá kombinaci s NEJMENŠÍM počtem kusů
+    function solveKnapsack(target, items, mode = 'exact') {
+        const totalSum = items.reduce((a, b) => a + b, 0);
+        if (totalSum < target) return null;
+
+        const maxLimit = mode === 'exact' ? target : target + Math.max(...items, 0);
+
+        // dp[w] = nejmenší počet kusů pro součet w, nebo Infinity pokud nedosažitelné
+        const dpCount = new Array(maxLimit + 1).fill(Infinity);
+        const dpItems = new Array(maxLimit + 1).fill(null);
+        dpCount[0] = 0;
+        dpItems[0] = [];
+
+        for (let item of items) {
+            // Procházíme pozpátku (0/1 knapsack — každý kus použijeme max 1x)
+            for (let w = maxLimit; w >= item; w--) {
+                if (dpCount[w - item] !== Infinity) {
+                    const newCount = dpCount[w - item] + 1;
+                    if (newCount < dpCount[w]) {
+                        dpCount[w] = newCount;
+                        dpItems[w] = [...dpItems[w - item], item];
+                    }
+                }
+            }
+        }
+
+        if (mode === 'exact') {
+            return dpItems[target];
+        } else {
+            // Hledáme nejbližší dosažitelnou hodnotu >= target s nejmenším počtem kusů
+            let bestW = -1;
+            for (let w = target; w <= maxLimit; w++) {
+                if (dpCount[w] !== Infinity) {
+                    if (bestW === -1 || dpCount[w] < dpCount[bestW]) {
+                        bestW = w;
+                    }
+                    // Pokud jsme našli řešení a další by mělo více kusů, stačí
+                    if (bestW !== -1 && dpCount[w] > dpCount[bestW]) break;
+                }
+            }
+            return bestW !== -1 ? dpItems[bestW] : null;
+        }
+    }
+
+    function formatCompositionText(comboArr) {
+        let counts = {};
+        comboArr.forEach(x => counts[x] = (counts[x] || 0) + 1);
+        return Object.keys(counts).sort((a, b) => b - a).map(size => `${counts[size]}x ${size}mm`).join(', ');
+    }
+
+    function calculateComposition(catName, toolName, safeId) {
+        const inputEl = document.getElementById(`input-${safeId}`);
+        const containerEl = document.getElementById(`result-container-${safeId}`);
+        let rawTarget = parseFloat(inputEl.value);
+        containerEl.innerHTML = "";
+        if (isNaN(rawTarget) || rawTarget <= 0) {
+            containerEl.innerHTML = `<div class="msg red">✕ Zadejte platnou kladnou délku.</div>`;
+            return;
+        }
+        let target = Math.floor(rawTarget / 5) * 5;
+        inputEl.value = target;
+        const availableItems = getInventoryArray(globalData[catName][toolName].segments);
+        let exactCombo = solveKnapsack(target, availableItems, 'exact');
+        if (exactCombo) {
+            let segmentsText = formatCompositionText(exactCombo);
+            containerEl.innerHTML = `<div class="msg green"><strong>✓ Dostatek nástrojů pro ohyb napřesno.</strong><br>Složení sady: ${segmentsText} (Celkem přesně ${target} mm).</div>`;
+        } else {
+            let looseCombo = solveKnapsack(target, availableItems, 'loose');
+            if (looseCombo) {
+                let segmentsText = formatCompositionText(looseCombo);
+                let totalComposed = looseCombo.reduce((a, b) => a + b, 0);
+                let overrun = totalComposed - target;
+                containerEl.innerHTML = `<div class="msg green"><strong>✓ Dostatek nástrojů pro ohyb navolno.</strong><br>Složení sady: ${segmentsText} (Složená délka: ${totalComposed} mm, přesah o ${overrun} mm).</div><div class="msg red"><strong>✕ Nelze ohýbat napřesno.</strong></div>`;
+            } else {
+                containerEl.innerHTML = `<div class="msg red"><strong>✕ NEDOSTATEK NÁSTROJŮ.</strong><br>Nelze poskládat požadovanou délku ${target} mm.</div>`;
+            }
+        }
+    }
+
+    function filter() {
+        const q = document.getElementById('search').value.toLowerCase();
+        const categories = document.querySelectorAll('.category-section');
+        categories.forEach(sec => {
+            const cards = sec.querySelectorAll('.tool-card');
+            let hasVisible = false;
+            cards.forEach(card => {
+                const name = card.getAttribute('data-n');
+                if (name && name.includes(q)) { card.style.display = 'grid'; hasVisible = true; } else { card.style.display = 'none'; }
+            });
+            sec.style.display = hasVisible ? 'block' : 'none';
+            if (q.length > 0 && hasVisible) sec.classList.add('open'); else if (q.length === 0) sec.classList.remove('open');
+        });
+    }
+</script>
+</body>
+</html>
