@@ -336,17 +336,17 @@
                     <div style="display:grid; grid-template-columns: 1fr 1fr; gap:16px; align-items:stretch;">
                         <!-- Levý sloupec: parametry -->
                         <div style="display:flex; flex-direction:column; gap:10px;">
-                            <div style="background:rgba(0,0,0,0.2); padding:14px 16px; border-radius:8px; border:1px solid var(--border); flex:1;">
+                            <div style="background:rgba(0,0,0,0.2); padding:14px 16px; border-radius:8px; border:1px solid var(--border); flex:1; display:flex; flex-direction:column; justify-content:center;">
                                 <span class="total-label" style="display:block; margin-bottom:6px; text-align:left;">MAX. DÉLKA OHYBU</span>
-                                <span class="total-val" style="display:block; text-align:left; font-size:1.4rem;">${m.length} mm</span>
+                                <span class="total-val" style="display:block; text-align:left; font-size:2rem; line-height:1;">${m.length} mm</span>
                             </div>
-                            <div style="background:rgba(0,0,0,0.2); padding:14px 16px; border-radius:8px; border:1px solid var(--border); flex:1;">
+                            <div style="background:rgba(0,0,0,0.2); padding:14px 16px; border-radius:8px; border:1px solid var(--border); flex:1; display:flex; flex-direction:column; justify-content:center;">
                                 <span class="total-label" style="display:block; margin-bottom:6px; text-align:left;">MAX. TLAK</span>
-                                <span class="total-val" style="display:block; text-align:left; font-size:1.4rem; color:var(--warning);">${m.pressure} kN</span>
+                                <span class="total-val" style="display:block; text-align:left; font-size:2rem; line-height:1; color:var(--warning);">${m.pressure} kN</span>
                             </div>
-                            <div style="background:rgba(0,0,0,0.2); padding:14px 16px; border-radius:8px; border:1px solid var(--border); flex:1;">
+                            <div style="background:rgba(0,0,0,0.2); padding:14px 16px; border-radius:8px; border:1px solid var(--border); flex:1; display:flex; flex-direction:column; justify-content:center;">
                                 <span class="total-label" style="display:block; margin-bottom:6px; text-align:left;">ROK VÝROBY</span>
-                                <span class="total-val" style="display:block; text-align:left; font-size:1.4rem; color:#fff;">${m.year}</span>
+                                <span class="total-val" style="display:block; text-align:left; font-size:2rem; line-height:1; color:#fff;">${m.year}</span>
                             </div>
                         </div>
                         <!-- Pravý sloupec: obrázek stejně vysoký jako 3 boxy -->
