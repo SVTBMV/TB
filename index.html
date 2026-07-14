@@ -29,7 +29,7 @@
         .stredisko-btn:hover { border-color: var(--accent); background: #2d3a6d; transform: translateY(-2px); }
         .stredisko-btn.active { border-color: var(--accent); background: var(--accent); color: #000; }
 
-        #main-content, #pressure-content, #machines-content { display: none; }
+        #main-content, #pressure-content, #machines-content, #vykony-content { display: none; }
         
         input#search, input#search-machines { width: 100%; background: var(--card); border: 1px solid var(--border); padding: 15px; border-radius: 12px; color: white; margin-bottom: 30px; outline: none; box-sizing: border-box; font-size: 1rem; }
 
@@ -577,8 +577,10 @@
                 <div class="vykony-summary-card"><span class="val">${pocetNizsiBonus}</span><span class="lbl">Dní s bonusem 250–300 min</span></div>
                 <div class="vykony-summary-card"><span class="val">${pocetVyssiBonus}</span><span class="lbl">Dní s bonusem nad 300 min</span></div>
                 <div class="vykony-summary-card"><span class="val" style="color:var(--warning);">${celkemBonus} Kč</span><span class="lbl">Celkový bonus za období</span></div>
-                <div class="vykony-summary-card"><span class="val">${nejvyssiVykon} min</span><span class="lbl">Nejvyšší výkon</span></div>
+            </div>
+            <div class="vykony-summary">
                 <div class="vykony-summary-card"><span class="val">${nejnizsiVykon} min</span><span class="lbl">Nejnižší výkon</span></div>
+                <div class="vykony-summary-card"><span class="val">${nejvyssiVykon} min</span><span class="lbl">Nejvyšší výkon</span></div>
                 <div class="vykony-summary-card"><span class="val">${prumerVykon} min</span><span class="lbl">Průměr výkonu</span></div>
             </div>
             <table class="vykony-table">
