@@ -347,6 +347,7 @@
 
     // Jednoduchý CSV parser (podporuje uvozovky a čárky uvnitř polí)
     function parseCSV(text) {
+        text = text.replace(/^\uFEFF/, ''); // odstranit BOM, pokud je přítomen
         const rows = [];
         let row = [];
         let field = '';
@@ -368,6 +369,12 @@
         }
         if (field.length > 0 || row.length > 0) { row.push(field); rows.push(row); }
         return rows.filter(r => r.length > 1 || (r.length === 1 && r[0].trim() !== ''));
+    }
+
+    // Vyčistí buňku - ořízne mezery, neviditelné znaky a případnou vodicí apostrofu (text-force v Sheets)
+    function ocistitBunku(v) {
+        if (v === undefined || v === null) return '';
+        return v.replace(/\u00A0/g, ' ').trim().replace(/^'/, '').trim();
     }
 
     // Vrátí datum ve formátu YYYY-MM-DD (ignoruje čas), nebo null pokud se nepodaří rozpoznat
@@ -407,12 +414,13 @@
         try {
             const response = await fetch(HESLA_URL);
             const text = await response.text();
-            const rows = parseCSV(text).slice(1); // přeskočit hlavičku
+            const rows = parseCSV(text);
             globalHeslaMap = {};
             rows.forEach(cols => {
-                const osCislo = (cols[0] || '').trim();
-                const heslo = (cols[1] || '').trim();
-                if (osCislo) globalHeslaMap[osCislo] = heslo || DEFAULT_HESLO;
+                const osCislo = ocistitBunku(cols[0]);
+                const heslo = ocistitBunku(cols[1]);
+                if (!osCislo || !/^\d+$/.test(osCislo)) return; // přeskočit hlavičku / neplatné řádky
+                globalHeslaMap[osCislo] = heslo || DEFAULT_HESLO;
             });
         } catch (e) {
             globalHeslaMap = {};
@@ -425,14 +433,14 @@
             await nacistHesla();
             const response = await fetch(VYKONY_URL);
             const text = await response.text();
-            const rows = parseCSV(text).slice(1); // přeskočit hlavičku
+            const rows = parseCSV(text);
 
             globalVykonyData = [];
             rows.forEach(cols => {
-                const datumIso = normalizovatDatum(cols[0]);
-                const minuty = parseFloat((cols[1] || '').replace(',', '.'));
-                const jmeno = (cols[2] || '').trim();
-                const osCislo = (cols[3] || '').trim();
+                const datumIso = normalizovatDatum(ocistitBunku(cols[0]));
+                const minuty = parseFloat(ocistitBunku(cols[1]).replace(',', '.'));
+                const jmeno = ocistitBunku(cols[2]);
+                const osCislo = ocistitBunku(cols[3]);
                 if (!datumIso || isNaN(minuty) || !osCislo) return;
                 globalVykonyData.push({ datum: datumIso, minuty, jmeno, osCislo });
             });
@@ -446,10 +454,7 @@
 
     function renderOsobyGrid() {
         const grid = document.getElementById('osoby-grid');
-        const osoby = {}; // osCislo -> jmeno
-        globalVykonyData.forEach(r => { if (!osoby[r.osCislo]) osoby[r.osCislo] = r.jmeno; });
-
-        const cisla = Object.keys(osoby).sort();
+        const cisla = [...new Set(globalVykonyData.map(r => r.osCislo))].sort();
         if (cisla.length === 0) {
             grid.innerHTML = '';
             return;
@@ -457,7 +462,6 @@
         grid.innerHTML = cisla.map(cislo => `
             <div class="osoba-btn" id="osoba-btn-${cislo}" onclick="vybratOsobu('${cislo}')">
                 <span>${cislo}</span>
-                <span class="osoba-jmeno">${osoby[cislo] || ''}</span>
             </div>
         `).join('');
     }
@@ -484,7 +488,7 @@
     function overitHeslo(osCislo) {
         const input = document.getElementById('heslo-input');
         const errorEl = document.getElementById('heslo-error');
-        const zadane = (input.value || '').trim();
+        const zadane = ocistitBunku(input.value);
         const spravne = globalHeslaMap[osCislo] || DEFAULT_HESLO;
 
         if (zadane === spravne) {
@@ -515,6 +519,13 @@
         });
 
         const dny = Object.keys(podleDnu).sort();
+
+        const hodnotyMinut = dny.map(d => Math.round(podleDnu[d]));
+        const nejvyssiVykon = hodnotyMinut.length > 0 ? Math.max(...hodnotyMinut) : 0;
+        const nejnizsiVykon = hodnotyMinut.length > 0 ? Math.min(...hodnotyMinut) : 0;
+        const prumerVykon = hodnotyMinut.length > 0
+            ? Math.round(hodnotyMinut.reduce((a, b) => a + b, 0) / hodnotyMinut.length)
+            : 0;
 
         let pocetNizsiBonus = 0;
         let pocetVyssiBonus = 0;
@@ -566,6 +577,9 @@
                 <div class="vykony-summary-card"><span class="val">${pocetNizsiBonus}</span><span class="lbl">Dní s bonusem 250–300 min</span></div>
                 <div class="vykony-summary-card"><span class="val">${pocetVyssiBonus}</span><span class="lbl">Dní s bonusem nad 300 min</span></div>
                 <div class="vykony-summary-card"><span class="val" style="color:var(--warning);">${celkemBonus} Kč</span><span class="lbl">Celkový bonus za období</span></div>
+                <div class="vykony-summary-card"><span class="val">${nejvyssiVykon} min</span><span class="lbl">Nejvyšší výkon</span></div>
+                <div class="vykony-summary-card"><span class="val">${nejnizsiVykon} min</span><span class="lbl">Nejnižší výkon</span></div>
+                <div class="vykony-summary-card"><span class="val">${prumerVykon} min</span><span class="lbl">Průměr výkonu</span></div>
             </div>
             <table class="vykony-table">
                 <thead>
