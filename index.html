@@ -297,7 +297,7 @@
             if(globalMachinesData.length === 0) nacistStroje(true);
         } else if(view === 'vykony') {
             title.innerText = "VÝKONY OBSLUH TB";
-            subtitle.innerText = "Přehled odvedené práce a bonusů v aktuálním období";
+            subtitle.innerText = "Přehled odvedené práce a bonusů podle dat v tabulce";
             if(globalVykonyData.length === 0) nacistVykony();
         }
     }
@@ -504,17 +504,9 @@
     }
 
     function renderVykonyReport(osCislo) {
-        const now = new Date();
-        const rokAktualni = now.getFullYear();
-        const mesicAktualni = now.getMonth(); // 0-indexed
+        const zaznamy = globalVykonyData.filter(r => r.osCislo === osCislo);
 
-        const zaznamy = globalVykonyData.filter(r => {
-            if (r.osCislo !== osCislo) return false;
-            const [y, m] = r.datum.split('-').map(Number);
-            return y === rokAktualni && (m - 1) === mesicAktualni;
-        });
-
-        const jmeno = zaznamy.length > 0 ? zaznamy[0].jmeno : (globalVykonyData.find(r => r.osCislo === osCislo) || {}).jmeno || '';
+        const jmeno = zaznamy.length > 0 ? zaznamy[0].jmeno : '';
 
         // Součet minut po dnech
         const podleDnu = {};
@@ -550,8 +542,9 @@
                 </tr>`;
         });
 
-        const nazvyMesicu = ['leden','únor','březen','duben','květen','červen','červenec','srpen','září','říjen','listopad','prosinec'];
-        const obdobiText = `${nazvyMesicu[mesicAktualni]} ${rokAktualni}`;
+        const obdobiText = dny.length > 0
+            ? (dny.length === 1 ? formatDatumCZ(dny[0]) : `${formatDatumCZ(dny[0])} – ${formatDatumCZ(dny[dny.length - 1])}`)
+            : 'bez záznamů';
 
         const app = document.getElementById('vykony-app');
         if (dny.length === 0) {
@@ -560,7 +553,7 @@
                     <div class="vykony-jmeno-title">${jmeno} (${osCislo}) — ${obdobiText}</div>
                     <button class="logout-btn" onclick="odhlasitOsobu()">Odhlásit</button>
                 </div>
-                <div class="status-msg">V aktuálním období nejsou zaznamenány žádné odvedené výkony.</div>`;
+                <div class="status-msg">Pro toto osobní číslo nejsou v tabulce zaznamenány žádné odvedené výkony.</div>`;
             return;
         }
 
