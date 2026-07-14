@@ -416,11 +416,16 @@
             const text = await response.text();
             const rows = parseCSV(text);
             globalHeslaMap = {};
-            rows.forEach(cols => {
+            rows.forEach((cols, idx) => {
                 const osCislo = ocistitBunku(cols[0]);
                 const heslo = ocistitBunku(cols[1]);
-                if (!osCislo || !/^\d+$/.test(osCislo)) return; // přeskočit hlavičku / neplatné řádky
-                globalHeslaMap[osCislo] = heslo || DEFAULT_HESLO;
+                if (!osCislo) return;
+                // Přeskočit případnou hlavičku (např. "Osobní číslo" / "Heslo") jen na prvním řádku
+                if (idx === 0) {
+                    const nizke = osCislo.toLowerCase();
+                    if (nizke.includes('číslo') || nizke.includes('cislo') || nizke.includes('osob')) return;
+                }
+                globalHeslaMap[osCislo.toLowerCase()] = heslo || DEFAULT_HESLO;
             });
         } catch (e) {
             globalHeslaMap = {};
@@ -489,7 +494,7 @@
         const input = document.getElementById('heslo-input');
         const errorEl = document.getElementById('heslo-error');
         const zadane = ocistitBunku(input.value);
-        const spravne = globalHeslaMap[osCislo] || DEFAULT_HESLO;
+        const spravne = globalHeslaMap[osCislo.toLowerCase()] || DEFAULT_HESLO;
 
         if (zadane === spravne) {
             prihlasenaOsoba = osCislo;
