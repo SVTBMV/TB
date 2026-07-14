@@ -465,11 +465,17 @@
             grid.innerHTML = '';
             return;
         }
-        grid.innerHTML = cisla.map(cislo => `
+        let html = `
+            <div class="osoba-btn" id="osoba-btn-master" style="border-color:var(--warning);" onclick="vybratKompletniPrehled()">
+                <span>📋 Komplexní přehled</span>
+                <span class="osoba-jmeno">všechny obsluhy najednou</span>
+            </div>`;
+        html += cisla.map(cislo => `
             <div class="osoba-btn" id="osoba-btn-${cislo}" onclick="vybratOsobu('${cislo}')">
                 <span>${cislo}</span>
             </div>
         `).join('');
+        grid.innerHTML = html;
     }
 
     function vybratOsobu(osCislo) {
@@ -507,15 +513,48 @@
         }
     }
 
+    function vybratKompletniPrehled() {
+        prihlasenaOsoba = null;
+        document.querySelectorAll('.osoba-btn').forEach(b => b.classList.remove('active'));
+        const btn = document.getElementById('osoba-btn-master');
+        if (btn) btn.classList.add('active');
+
+        const app = document.getElementById('vykony-app');
+        app.innerHTML = `
+            <div class="login-box">
+                <h3>🔒 Zadejte master heslo</h3>
+                <p style="color:#94a3b8; font-size:0.9rem; margin-top:-10px;">Komplexní přehled všech obsluh</p>
+                <input type="password" id="heslo-input" placeholder="Heslo" inputmode="numeric"
+                    onkeydown="if(event.key==='Enter') overitHesloMaster()">
+                <div class="login-error" id="heslo-error"></div>
+                <button onclick="overitHesloMaster()">Vstoupit</button>
+            </div>`;
+        document.getElementById('heslo-input').focus();
+    }
+
+    function overitHesloMaster() {
+        const input = document.getElementById('heslo-input');
+        const errorEl = document.getElementById('heslo-error');
+        const zadane = ocistitBunku(input.value);
+
+        if (zadane === MASTER_HESLO) {
+            renderKompletniPrehled();
+        } else {
+            errorEl.textContent = 'Nesprávné heslo. Zkuste to znovu.';
+            input.value = '';
+            input.focus();
+        }
+    }
+
     function odhlasitOsobu() {
         prihlasenaOsoba = null;
         document.querySelectorAll('.osoba-btn').forEach(b => b.classList.remove('active'));
         document.getElementById('vykony-app').innerHTML = `<div class="status-msg">Vyberte výše své osobní číslo...</div>`;
     }
 
-    function renderVykonyReport(osCislo) {
+    // Vygeneruje HTML blok se souhrnem a tabulkou pro dané osobní číslo (bez obalu app.innerHTML)
+    function generujBlokVykonu(osCislo, sTlacitkemOdhlasit) {
         const zaznamy = globalVykonyData.filter(r => r.osCislo === osCislo);
-
         const jmeno = zaznamy.length > 0 ? zaznamy[0].jmeno : '';
 
         // Součet minut po dnech
@@ -563,21 +602,21 @@
             ? (dny.length === 1 ? formatDatumCZ(dny[0]) : `${formatDatumCZ(dny[0])} – ${formatDatumCZ(dny[dny.length - 1])}`)
             : 'bez záznamů';
 
-        const app = document.getElementById('vykony-app');
+        const odhlasitHtml = sTlacitkemOdhlasit ? `<button class="logout-btn" onclick="odhlasitOsobu()">Odhlásit</button>` : '';
+
         if (dny.length === 0) {
-            app.innerHTML = `
+            return `
                 <div class="vykony-header-row">
                     <div class="vykony-jmeno-title">${jmeno} (${osCislo}) — ${obdobiText}</div>
-                    <button class="logout-btn" onclick="odhlasitOsobu()">Odhlásit</button>
+                    ${odhlasitHtml}
                 </div>
                 <div class="status-msg">Pro toto osobní číslo nejsou v tabulce zaznamenány žádné odvedené výkony.</div>`;
-            return;
         }
 
-        app.innerHTML = `
+        return `
             <div class="vykony-header-row">
                 <div class="vykony-jmeno-title">${jmeno} (${osCislo}) — ${obdobiText}</div>
-                <button class="logout-btn" onclick="odhlasitOsobu()">Odhlásit</button>
+                ${odhlasitHtml}
             </div>
             <div class="vykony-summary">
                 <div class="vykony-summary-card"><span class="val">${pocetNizsiBonus}</span><span class="lbl">Dní s bonusem 250–300 min</span></div>
@@ -601,6 +640,30 @@
                 </thead>
                 <tbody>${radkyHtml}</tbody>
             </table>`;
+    }
+
+    function renderVykonyReport(osCislo) {
+        const app = document.getElementById('vykony-app');
+        app.innerHTML = generujBlokVykonu(osCislo, true);
+    }
+
+    function renderKompletniPrehled() {
+        const cisla = [...new Set(globalVykonyData.map(r => r.osCislo))].sort();
+        const app = document.getElementById('vykony-app');
+
+        let html = `
+            <div class="vykony-header-row">
+                <div class="vykony-jmeno-title">📋 Komplexní přehled — všechny obsluhy (${cisla.length})</div>
+                <button class="logout-btn" onclick="odhlasitOsobu()">Odhlásit</button>
+            </div>`;
+
+        cisla.forEach((cislo, idx) => {
+            html += `<div style="${idx > 0 ? 'margin-top:35px; padding-top:25px; border-top:1px solid var(--border);' : 'margin-top:10px;'}">`;
+            html += generujBlokVykonu(cislo, false);
+            html += `</div>`;
+        });
+
+        app.innerHTML = html;
     }
 
     function vybratStrediskoStroje(jmenoStrediska) {
