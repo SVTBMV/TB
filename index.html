@@ -113,6 +113,35 @@
         .stredisko-stroje-detail.open { display: block; }
         .stredisko-stroj-row { display: flex; justify-content: space-between; padding: 4px 0; border-bottom: 1px solid rgba(255,255,255,0.05); }
         .stredisko-stroj-row:last-child { border-bottom: none; }
+
+        /* Výkony obsluh TB */
+        .osoba-btn { background: var(--card); border: 2px solid var(--border); border-radius: 12px; padding: 20px 10px; color: white; font-weight: bold; text-align: center; cursor: pointer; transition: all 0.2s; font-size: 1rem; display: flex; flex-direction: column; gap: 4px; }
+        .osoba-btn:hover { border-color: var(--accent); background: #2d3a6d; transform: translateY(-2px); }
+        .osoba-btn .osoba-jmeno { font-size: 0.75rem; color: #94a3b8; font-weight: 500; text-transform: none; letter-spacing: 0; }
+        .login-box { max-width: 380px; margin: 30px auto; background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 30px; text-align: center; }
+        .login-box h3 { margin-top: 0; color: var(--accent); }
+        .login-box input { width: 100%; background: #0f172a; border: 1px solid var(--border); padding: 14px; border-radius: 8px; color: white; margin-bottom: 15px; outline: none; box-sizing: border-box; font-size: 1rem; text-align: center; letter-spacing: 2px; }
+        .login-box input:focus { border-color: var(--accent); }
+        .login-box button { width: 100%; background: var(--accent); color: #000; font-weight: bold; border: none; padding: 14px; border-radius: 8px; cursor: pointer; font-size: 1rem; }
+        .login-box button:hover { opacity: 0.9; }
+        .login-error { color: var(--error); font-size: 0.85rem; margin-top: -5px; margin-bottom: 15px; min-height: 1em; }
+
+        .vykony-summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 15px; margin-bottom: 25px; }
+        .vykony-summary-card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 18px; text-align: center; }
+        .vykony-summary-card .val { display: block; font-size: 1.8rem; font-weight: 800; color: var(--accent); }
+        .vykony-summary-card .lbl { display: block; font-size: 0.75rem; color: #94a3b8; text-transform: uppercase; margin-top: 4px; letter-spacing: 0.5px; }
+
+        table.vykony-table { width: 100%; border-collapse: collapse; background: var(--card); border-radius: 12px; overflow: hidden; }
+        table.vykony-table th, table.vykony-table td { padding: 12px 14px; text-align: center; border-bottom: 1px solid var(--border); font-size: 0.9rem; }
+        table.vykony-table th { background: #1e294b; color: var(--accent); text-transform: uppercase; font-size: 0.75rem; letter-spacing: 0.5px; }
+        table.vykony-table tr:last-child td { border-bottom: none; }
+        table.vykony-table td.ano { color: var(--success); font-weight: bold; }
+        table.vykony-table td.ne { color: #64748b; }
+        table.vykony-table td.bonus-castka { color: var(--warning); font-weight: 800; }
+        .vykony-header-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-wrap: wrap; gap: 10px; }
+        .vykony-jmeno-title { font-size: 1.2rem; font-weight: 800; color: #fff; }
+        .logout-btn { background: var(--card); border: 1px solid var(--error); color: var(--error); padding: 8px 16px; border-radius: 8px; cursor: pointer; font-weight: bold; }
+        .logout-btn:hover { background: rgba(239, 68, 68, 0.15); }
     </style>
 </head>
 <body>
@@ -127,6 +156,7 @@
         <div class="hub-btn" onclick="switchView('sklad')">📦 Sklad nástrojů</div>
         <div class="hub-btn" onclick="switchView('tlak')">📉 Výpočet tlaku pro ohyb</div>
         <div class="hub-btn" onclick="switchView('stroje')">⚙️ Přehled strojů</div>
+        <div class="hub-btn" onclick="switchView('vykony')">📊 Výkony obsluh TB</div>
     </div>
 
     <div id="main-content">
@@ -205,6 +235,12 @@
         <div id="machines-app">Vyberte středisko výše...</div>
     </div>
 
+    <div id="vykony-content">
+        <div class="back-to-hub" onclick="switchView('hub')">← Zpět do menu</div>
+        <div class="strediska-grid" id="osoby-grid"></div>
+        <div id="vykony-app"><div class="status-msg">Načítám seznam osobních čísel...</div></div>
+    </div>
+
 </div>
 
 <script>
@@ -218,9 +254,16 @@
     };
 
     const STROJE_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQRxdWjM7PN8XJXWA3mX0M6dlKmnpE1rwfY6cSiPv9A4pDcCJqeWzl8e6YjHVAWW6cs6pM12KXpAK3l/pub?output=tsv';
+
+    const HESLA_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRfPvz0BUm5LJMrwQz1ItnnqttCyVc3UA_ddGMJsEcMnMLGvxietpnpkX_gK1qh3clPJL68BZ8eELgw/pub?output=csv';
+    const VYKONY_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTVAmmKGsoC5QDpr7tYy_abrgK3fom1TGwFUdNOdZimmjOZe0zDHVnqHqJlV9ZBIYWN6oPieLTlZQPh/pub?output=csv';
+    const DEFAULT_HESLO = '159159';
     
     let globalData = {}; 
     let globalMachinesData = []; // Databáze všech strojů ze sheetu
+    let globalVykonyData = [];   // Syrové řádky výkonů: {datum, minuty, jmeno, osCislo}
+    let globalHeslaMap = {};     // osCislo -> heslo
+    let prihlasenaOsoba = null;  // aktuálně přihlášené osobní číslo
 
     // Automatické načtení strojů ihned po načtení stránky, aby byly dostupné i v kalkulačce tlaku
     window.addEventListener('DOMContentLoaded', () => {
@@ -233,6 +276,7 @@
         document.getElementById('main-content').style.display = view === 'sklad' ? 'block' : 'none';
         document.getElementById('pressure-content').style.display = view === 'tlak' ? 'block' : 'none';
         document.getElementById('machines-content').style.display = view === 'stroje' ? 'block' : 'none';
+        document.getElementById('vykony-content').style.display = view === 'vykony' ? 'block' : 'none';
         
         const title = document.getElementById('app-title');
         const subtitle = document.getElementById('app-subtitle');
@@ -251,6 +295,10 @@
             title.innerText = "PŘEHLED STROJŮ";
             subtitle.innerText = "Parametry a specifikace zařízení v jednotlivých střediscích";
             if(globalMachinesData.length === 0) nacistStroje(true);
+        } else if(view === 'vykony') {
+            title.innerText = "VÝKONY OBSLUH TB";
+            subtitle.innerText = "Přehled odvedené práce a bonusů v aktuálním období";
+            if(globalVykonyData.length === 0) nacistVykony();
         }
     }
 
@@ -293,6 +341,251 @@
             }
             document.getElementById('p-machine-compatibility').innerHTML = `<div class="status-msg" style="color:var(--error);">Chyba při načítání strojů pro kalkulačku.</div>`;
         }
+    }
+
+    // --- LOGIKA PRO VÝKONY OBSLUH TB ---
+
+    // Jednoduchý CSV parser (podporuje uvozovky a čárky uvnitř polí)
+    function parseCSV(text) {
+        const rows = [];
+        let row = [];
+        let field = '';
+        let inQuotes = false;
+        for (let i = 0; i < text.length; i++) {
+            const c = text[i];
+            if (inQuotes) {
+                if (c === '"') {
+                    if (text[i + 1] === '"') { field += '"'; i++; }
+                    else { inQuotes = false; }
+                } else { field += c; }
+            } else {
+                if (c === '"') { inQuotes = true; }
+                else if (c === ',') { row.push(field); field = ''; }
+                else if (c === '\r') { /* ignore */ }
+                else if (c === '\n') { row.push(field); rows.push(row); row = []; field = ''; }
+                else { field += c; }
+            }
+        }
+        if (field.length > 0 || row.length > 0) { row.push(field); rows.push(row); }
+        return rows.filter(r => r.length > 1 || (r.length === 1 && r[0].trim() !== ''));
+    }
+
+    // Vrátí datum ve formátu YYYY-MM-DD (ignoruje čas), nebo null pokud se nepodaří rozpoznat
+    function normalizovatDatum(raw) {
+        if (!raw) return null;
+        let s = raw.trim();
+        if (!s) return null;
+        // odseknout případný čas za mezerou
+        s = s.split(' ')[0];
+
+        // formát YYYY-MM-DD
+        let m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+        if (m) return `${m[1]}-${m[2].padStart(2,'0')}-${m[3].padStart(2,'0')}`;
+
+        // formát DD.MM.YYYY nebo D.M.YYYY
+        m = s.match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})$/);
+        if (m) return `${m[3]}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}`;
+
+        // formát MM/DD/YYYY nebo M/D/YYYY (typický export Google Sheets)
+        m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+        if (m) return `${m[3]}-${m[1].padStart(2,'0')}-${m[2].padStart(2,'0')}`;
+
+        // poslední pokus - nechat JS parser rozhodnout
+        const d = new Date(s);
+        if (!isNaN(d.getTime())) {
+            return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+        }
+        return null;
+    }
+
+    function formatDatumCZ(iso) {
+        const [y, m, d] = iso.split('-');
+        return `${d}.${m}.${y}`;
+    }
+
+    async function nacistHesla() {
+        try {
+            const response = await fetch(HESLA_URL);
+            const text = await response.text();
+            const rows = parseCSV(text).slice(1); // přeskočit hlavičku
+            globalHeslaMap = {};
+            rows.forEach(cols => {
+                const osCislo = (cols[0] || '').trim();
+                const heslo = (cols[1] || '').trim();
+                if (osCislo) globalHeslaMap[osCislo] = heslo || DEFAULT_HESLO;
+            });
+        } catch (e) {
+            globalHeslaMap = {};
+        }
+    }
+
+    async function nacistVykony() {
+        document.getElementById('vykony-app').innerHTML = `<div class="status-msg">Načítám seznam osobních čísel...</div>`;
+        try {
+            await nacistHesla();
+            const response = await fetch(VYKONY_URL);
+            const text = await response.text();
+            const rows = parseCSV(text).slice(1); // přeskočit hlavičku
+
+            globalVykonyData = [];
+            rows.forEach(cols => {
+                const datumIso = normalizovatDatum(cols[0]);
+                const minuty = parseFloat((cols[1] || '').replace(',', '.'));
+                const jmeno = (cols[2] || '').trim();
+                const osCislo = (cols[3] || '').trim();
+                if (!datumIso || isNaN(minuty) || !osCislo) return;
+                globalVykonyData.push({ datum: datumIso, minuty, jmeno, osCislo });
+            });
+
+            renderOsobyGrid();
+            document.getElementById('vykony-app').innerHTML = `<div class="status-msg">Vyberte výše své osobní číslo...</div>`;
+        } catch (e) {
+            document.getElementById('vykony-app').innerHTML = `<div class="msg red" style="display:block">Chyba při načítání dat výkonů. Zkontrolujte připojení nebo odkaz na Sheet.</div>`;
+        }
+    }
+
+    function renderOsobyGrid() {
+        const grid = document.getElementById('osoby-grid');
+        const osoby = {}; // osCislo -> jmeno
+        globalVykonyData.forEach(r => { if (!osoby[r.osCislo]) osoby[r.osCislo] = r.jmeno; });
+
+        const cisla = Object.keys(osoby).sort();
+        if (cisla.length === 0) {
+            grid.innerHTML = '';
+            return;
+        }
+        grid.innerHTML = cisla.map(cislo => `
+            <div class="osoba-btn" id="osoba-btn-${cislo}" onclick="vybratOsobu('${cislo}')">
+                <span>${cislo}</span>
+                <span class="osoba-jmeno">${osoby[cislo] || ''}</span>
+            </div>
+        `).join('');
+    }
+
+    function vybratOsobu(osCislo) {
+        prihlasenaOsoba = null;
+        document.querySelectorAll('.osoba-btn').forEach(b => b.classList.remove('active'));
+        const btn = document.getElementById(`osoba-btn-${osCislo}`);
+        if (btn) btn.classList.add('active');
+
+        const app = document.getElementById('vykony-app');
+        app.innerHTML = `
+            <div class="login-box">
+                <h3>🔒 Zadejte heslo</h3>
+                <p style="color:#94a3b8; font-size:0.9rem; margin-top:-10px;">Osobní číslo: <strong>${osCislo}</strong></p>
+                <input type="password" id="heslo-input" placeholder="Heslo" inputmode="numeric"
+                    onkeydown="if(event.key==='Enter') overitHeslo('${osCislo}')">
+                <div class="login-error" id="heslo-error"></div>
+                <button onclick="overitHeslo('${osCislo}')">Vstoupit</button>
+            </div>`;
+        document.getElementById('heslo-input').focus();
+    }
+
+    function overitHeslo(osCislo) {
+        const input = document.getElementById('heslo-input');
+        const errorEl = document.getElementById('heslo-error');
+        const zadane = (input.value || '').trim();
+        const spravne = globalHeslaMap[osCislo] || DEFAULT_HESLO;
+
+        if (zadane === spravne) {
+            prihlasenaOsoba = osCislo;
+            renderVykonyReport(osCislo);
+        } else {
+            errorEl.textContent = 'Nesprávné heslo. Zkuste to znovu.';
+            input.value = '';
+            input.focus();
+        }
+    }
+
+    function odhlasitOsobu() {
+        prihlasenaOsoba = null;
+        document.querySelectorAll('.osoba-btn').forEach(b => b.classList.remove('active'));
+        document.getElementById('vykony-app').innerHTML = `<div class="status-msg">Vyberte výše své osobní číslo...</div>`;
+    }
+
+    function renderVykonyReport(osCislo) {
+        const now = new Date();
+        const rokAktualni = now.getFullYear();
+        const mesicAktualni = now.getMonth(); // 0-indexed
+
+        const zaznamy = globalVykonyData.filter(r => {
+            if (r.osCislo !== osCislo) return false;
+            const [y, m] = r.datum.split('-').map(Number);
+            return y === rokAktualni && (m - 1) === mesicAktualni;
+        });
+
+        const jmeno = zaznamy.length > 0 ? zaznamy[0].jmeno : (globalVykonyData.find(r => r.osCislo === osCislo) || {}).jmeno || '';
+
+        // Součet minut po dnech
+        const podleDnu = {};
+        zaznamy.forEach(r => {
+            podleDnu[r.datum] = (podleDnu[r.datum] || 0) + r.minuty;
+        });
+
+        const dny = Object.keys(podleDnu).sort();
+
+        let pocetNizsiBonus = 0;
+        let pocetVyssiBonus = 0;
+        let celkemBonus = 0;
+
+        let radkyHtml = '';
+        dny.forEach(datumIso => {
+            const minuty = Math.round(podleDnu[datumIso]);
+            const dosahlNizsiho = minuty >= 250 && minuty <= 300;
+            const dosahlVyssiho = minuty > 300;
+            const bonus1 = dosahlNizsiho ? 'ANO' : 'NE';
+            const bonus2 = dosahlVyssiho ? 'ANO' : 'NE';
+            let castka = 0;
+            if (dosahlNizsiho) { castka = 200; pocetNizsiBonus++; }
+            else if (dosahlVyssiho) { castka = minuty; pocetVyssiBonus++; }
+            celkemBonus += castka;
+
+            radkyHtml += `
+                <tr>
+                    <td>${formatDatumCZ(datumIso)}</td>
+                    <td>${minuty} min</td>
+                    <td class="${dosahlNizsiho ? 'ano' : 'ne'}">${bonus1}</td>
+                    <td class="${dosahlVyssiho ? 'ano' : 'ne'}">${bonus2}</td>
+                    <td class="bonus-castka">${castka > 0 ? castka + ' Kč' : '-'}</td>
+                </tr>`;
+        });
+
+        const nazvyMesicu = ['leden','únor','březen','duben','květen','červen','červenec','srpen','září','říjen','listopad','prosinec'];
+        const obdobiText = `${nazvyMesicu[mesicAktualni]} ${rokAktualni}`;
+
+        const app = document.getElementById('vykony-app');
+        if (dny.length === 0) {
+            app.innerHTML = `
+                <div class="vykony-header-row">
+                    <div class="vykony-jmeno-title">${jmeno} (${osCislo}) — ${obdobiText}</div>
+                    <button class="logout-btn" onclick="odhlasitOsobu()">Odhlásit</button>
+                </div>
+                <div class="status-msg">V aktuálním období nejsou zaznamenány žádné odvedené výkony.</div>`;
+            return;
+        }
+
+        app.innerHTML = `
+            <div class="vykony-header-row">
+                <div class="vykony-jmeno-title">${jmeno} (${osCislo}) — ${obdobiText}</div>
+                <button class="logout-btn" onclick="odhlasitOsobu()">Odhlásit</button>
+            </div>
+            <div class="vykony-summary">
+                <div class="vykony-summary-card"><span class="val">${pocetNizsiBonus}</span><span class="lbl">Dní s bonusem 250–300 min</span></div>
+                <div class="vykony-summary-card"><span class="val">${pocetVyssiBonus}</span><span class="lbl">Dní s bonusem nad 300 min</span></div>
+                <div class="vykony-summary-card"><span class="val" style="color:var(--warning);">${celkemBonus} Kč</span><span class="lbl">Celkový bonus za období</span></div>
+            </div>
+            <table class="vykony-table">
+                <thead>
+                    <tr>
+                        <th>Datum</th>
+                        <th>Odvedený čas</th>
+                        <th>Bonus 250–300 min</th>
+                        <th>Bonus nad 300 min</th>
+                        <th>Bonus</th>
+                    </tr>
+                </thead>
+                <tbody>${radkyHtml}</tbody>
+            </table>`;
     }
 
     function vybratStrediskoStroje(jmenoStrediska) {
