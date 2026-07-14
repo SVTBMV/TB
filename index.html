@@ -258,6 +258,7 @@
     const HESLA_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRfPvz0BUm5LJMrwQz1ItnnqttCyVc3UA_ddGMJsEcMnMLGvxietpnpkX_gK1qh3clPJL68BZ8eELgw/pub?output=csv';
     const VYKONY_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTVAmmKGsoC5QDpr7tYy_abrgK3fom1TGwFUdNOdZimmjOZe0zDHVnqHqJlV9ZBIYWN6oPieLTlZQPh/pub?output=csv';
     const DEFAULT_HESLO = '159159';
+    const MASTER_HESLO = '15748622';
     
     let globalData = {}; 
     let globalMachinesData = []; // Databáze všech strojů ze sheetu
@@ -496,7 +497,7 @@
         const zadane = ocistitBunku(input.value);
         const spravne = globalHeslaMap[osCislo.toLowerCase()] || DEFAULT_HESLO;
 
-        if (zadane === spravne) {
+        if (zadane === spravne || zadane === MASTER_HESLO) {
             prihlasenaOsoba = osCislo;
             renderVykonyReport(osCislo);
         } else {
