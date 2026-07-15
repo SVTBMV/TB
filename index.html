@@ -155,9 +155,9 @@
         .form-box input[type=text] { width: 100%; background: #0f172a; border: 1px solid var(--border); padding: 13px; border-radius: 8px; color: white; outline: none; box-sizing: border-box; font-size: 1rem; margin-bottom: 18px; }
         .form-box input[type=text]:focus { border-color: var(--accent); }
 
-        .nastroj-radek { display: flex; gap: 8px; margin-bottom: 10px; align-items: center; }
-        .nastroj-radek input[type=text] { margin-bottom: 0; flex: 1; }
-        .icon-btn { background: #0f172a; border: 1px solid var(--border); color: var(--accent); width: 46px; height: 46px; min-width: 46px; border-radius: 8px; cursor: pointer; font-size: 1.1rem; display: flex; align-items: center; justify-content: center; }
+        .nastroj-radek { display: flex; gap: 10px; margin-bottom: 12px; align-items: center; }
+        .nastroj-radek input[type=text] { margin-bottom: 0; flex: 1; padding: 16px; font-size: 1.1rem; }
+        .icon-btn { background: #0f172a; border: 1px solid var(--border); color: var(--accent); width: 56px; height: 56px; min-width: 56px; border-radius: 10px; cursor: pointer; font-size: 1.4rem; display: flex; align-items: center; justify-content: center; }
         .icon-btn:hover { border-color: var(--accent); background: #2d3a6d; }
         .icon-btn.remove { color: var(--error); }
         .icon-btn.remove:hover { background: rgba(239, 68, 68, 0.15); border-color: var(--error); }
@@ -169,7 +169,7 @@
         .zapujcka-karta { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 20px; margin-bottom: 16px; }
         .zapujcka-hlavicka { display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 10px; margin-bottom: 14px; }
         .zapujcka-komu { font-size: 1.15rem; font-weight: 800; color: #fff; }
-        .zapujcka-datumy { font-size: 0.82rem; color: #94a3b8; margin-top: 4px; }
+        .zapujcka-datumy { font-size: 0.85rem; color: #94a3b8; margin-top: 6px; display: flex; flex-direction: column; gap: 3px; }
         .zapujcka-datumy .po-terminu { color: var(--error); font-weight: bold; }
         .zapujcka-nastroje-list { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
         .zapujcka-nastroj-item { display: flex; justify-content: space-between; background: rgba(15, 23, 42, 0.5); border-radius: 8px; padding: 10px 14px; font-size: 0.9rem; }
@@ -482,8 +482,12 @@
     }
 
     function formatDatumCZ(iso) {
-        const [y, m, d] = iso.split('-');
-        return `${d}.${m}.${y}`;
+        const m = String(iso || '').match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+        if (m) return `${parseInt(m[3],10)}.${parseInt(m[2],10)}.${m[1]}`;
+        // Záložní pokus, kdyby datum přišlo v jiném formátu (např. z Google Sheets jako celé Date)
+        const d = new Date(iso);
+        if (!isNaN(d.getTime())) return `${d.getDate()}.${d.getMonth()+1}.${d.getFullYear()}`;
+        return String(iso || '');
     }
 
     async function nacistHesla() {
@@ -868,9 +872,9 @@
 
         let radkyHtml = novaZapujckaRadky.map(r => `
             <div class="nastroj-radek">
+                <button type="button" class="icon-btn" title="Sejmout Data Matrix kód" onclick="otevritSkener(${r.id})">📷</button>
                 <input type="text" placeholder="Číslo nástroje" value="${r.hodnota.replace(/"/g, '&quot;')}"
                     oninput="aktualizovatRadekNastroj(${r.id}, this.value)">
-                <button type="button" class="icon-btn" title="Sejmout Data Matrix kód" onclick="otevritSkener(${r.id})">📷</button>
                 <button type="button" class="icon-btn remove" title="Odebrat řádek" onclick="odebratRadekNastroj(${r.id})">✕</button>
             </div>`).join('');
 
@@ -942,10 +946,12 @@
             return;
         }
 
-        const dnesIso = new Date().toISOString().split('T')[0];
+        const dnes = new Date();
+        dnes.setHours(0, 0, 0, 0);
 
         wrap.innerHTML = zapujcky.map(z => {
-            const poTerminu = z.datumDo < dnesIso;
+            const datumDoObj = new Date(z.datumDo);
+            const poTerminu = !isNaN(datumDoObj.getTime()) && datumDoObj < dnes;
             const nastrojeHtml = z.nastroje.map(cislo => {
                 const info = globalNastrojeDB[String(cislo).toLowerCase()];
                 return `
@@ -962,8 +968,8 @@
                         <div>
                             <div class="zapujcka-komu">👤 ${z.komu}</div>
                             <div class="zapujcka-datumy">
-                                Zapůjčeno: ${formatDatumCZ(z.datumOd)} &nbsp;•&nbsp;
-                                Vrátit do: <span class="${poTerminu ? 'po-terminu' : ''}">${formatDatumCZ(z.datumDo)}${poTerminu ? ' (po termínu)' : ''}</span>
+                                <div>Datum zapůjčení: ${formatDatumCZ(z.datumOd)}</div>
+                                <div>Datum vrácení: <span class="${poTerminu ? 'po-terminu' : ''}">${formatDatumCZ(z.datumDo)}${poTerminu ? ' (po termínu)' : ''}</span></div>
                             </div>
                         </div>
                         <div id="akce-${z.id}">
