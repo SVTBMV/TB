@@ -166,7 +166,9 @@
         .save-btn { background: var(--success); color: #000; font-weight: bold; border: none; padding: 15px; border-radius: 8px; cursor: pointer; font-size: 1rem; width: 100%; }
         .save-btn:hover { opacity: 0.9; }
 
-        .zapujcka-karta { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 20px; margin-bottom: 16px; }
+        .zapujcka-karta { background: var(--card); border: 1px solid var(--border); border-left: 5px solid var(--border); border-radius: 14px; padding: 20px; margin-bottom: 16px; }
+        .zapujcka-karta.aktivni { border-left-color: var(--success); }
+        .zapujcka-karta.po-terminu-karta { border-left-color: var(--error); background: rgba(239, 68, 68, 0.06); }
         .zapujcka-hlavicka { display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 10px; margin-bottom: 14px; }
         .zapujcka-komu { font-size: 1.15rem; font-weight: 800; color: #fff; }
         .zapujcka-datumy { font-size: 0.85rem; color: #94a3b8; margin-top: 6px; display: flex; flex-direction: column; gap: 3px; }
@@ -881,7 +883,7 @@
         wrap.innerHTML = `
             <div class="form-box">
                 <label for="zapujcka-komu">Komu:</label>
-                <input type="text" id="zapujcka-komu" placeholder="Jméno osoby" value="${(komuHodnota || '').replace(/"/g, '&quot;')}">
+                <input type="text" id="zapujcka-komu" placeholder="Firma, středisko, osoba..." value="${(komuHodnota || '').replace(/"/g, '&quot;')}">
 
                 <label>Nástroje:</label>
                 <div id="nastroje-radky">${radkyHtml}</div>
@@ -963,7 +965,7 @@
             }).join('');
 
             return `
-                <div class="zapujcka-karta" id="karta-${z.id}">
+                <div class="zapujcka-karta ${poTerminu ? 'po-terminu-karta' : 'aktivni'}" id="karta-${z.id}">
                     <div class="zapujcka-hlavicka">
                         <div>
                             <div class="zapujcka-komu">👤 ${z.komu}</div>
