@@ -467,8 +467,7 @@
         }
         let html = `
             <div class="osoba-btn" id="osoba-btn-master" style="border-color:var(--warning);" onclick="vybratKompletniPrehled()">
-                <span>📋 Komplexní přehled</span>
-                <span class="osoba-jmeno">všechny obsluhy najednou</span>
+                <span>📋 Kompletní přehled</span>
             </div>`;
         html += cisla.map(cislo => `
             <div class="osoba-btn" id="osoba-btn-${cislo}" onclick="vybratOsobu('${cislo}')">
@@ -523,7 +522,7 @@
         app.innerHTML = `
             <div class="login-box">
                 <h3>🔒 Zadejte master heslo</h3>
-                <p style="color:#94a3b8; font-size:0.9rem; margin-top:-10px;">Komplexní přehled všech obsluh</p>
+                <p style="color:#94a3b8; font-size:0.9rem; margin-top:-10px;">Kompletní přehled všech obsluh</p>
                 <input type="password" id="heslo-input" placeholder="Heslo" inputmode="numeric"
                     onkeydown="if(event.key==='Enter') overitHesloMaster()">
                 <div class="login-error" id="heslo-error"></div>
@@ -553,7 +552,8 @@
     }
 
     // Vygeneruje HTML blok se souhrnem a tabulkou pro dané osobní číslo (bez obalu app.innerHTML)
-    function generujBlokVykonu(osCislo, sTlacitkemOdhlasit) {
+    function generujBlokVykonu(osCislo, sTlacitkemOdhlasit, sTabulkouDnu) {
+        if (sTabulkouDnu === undefined) sTabulkouDnu = true;
         const zaznamy = globalVykonyData.filter(r => r.osCislo === osCislo);
         const jmeno = zaznamy.length > 0 ? zaznamy[0].jmeno : '';
 
@@ -628,6 +628,7 @@
                 <div class="vykony-summary-card"><span class="val">${nejvyssiVykon} min</span><span class="lbl">Nejvyšší výkon</span></div>
                 <div class="vykony-summary-card"><span class="val">${prumerVykon} min</span><span class="lbl">Průměr výkonu</span></div>
             </div>
+            ${sTabulkouDnu ? `
             <table class="vykony-table">
                 <thead>
                     <tr>
@@ -639,7 +640,7 @@
                     </tr>
                 </thead>
                 <tbody>${radkyHtml}</tbody>
-            </table>`;
+            </table>` : ''}`;
     }
 
     function renderVykonyReport(osCislo) {
@@ -653,13 +654,13 @@
 
         let html = `
             <div class="vykony-header-row">
-                <div class="vykony-jmeno-title">📋 Komplexní přehled — všechny obsluhy (${cisla.length})</div>
+                <div class="vykony-jmeno-title">📋 Kompletní přehled — všechny obsluhy (${cisla.length})</div>
                 <button class="logout-btn" onclick="odhlasitOsobu()">Odhlásit</button>
             </div>`;
 
         cisla.forEach((cislo, idx) => {
             html += `<div style="${idx > 0 ? 'margin-top:35px; padding-top:25px; border-top:1px solid var(--border);' : 'margin-top:10px;'}">`;
-            html += generujBlokVykonu(cislo, false);
+            html += generujBlokVykonu(cislo, false, false);
             html += `</div>`;
         });
 
