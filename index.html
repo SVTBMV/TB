@@ -331,6 +331,7 @@
     let globalHeslaMap = {};     // osCislo -> heslo
     let prihlasenaOsoba = null;  // aktuálně přihlášené osobní číslo
     let pujcovnaOdemcena = false;
+    let pujcovnaReadOnly = false;
     let globalNastrojeDB = {};   // číslo nástroje -> {nazev, delka}
     let novaZapujckaRadky = [];  // pole ID řádků rozpracované nové zápůjčky
     let novaZapujckaCounter = 0;
@@ -807,8 +808,21 @@
                     onkeydown="if(event.key==='Enter') overitHesloPujcovna()">
                 <div class="login-error" id="pujcovna-heslo-error"></div>
                 <button onclick="overitHesloPujcovna()">Vstoupit</button>
+                <button style="margin-top:10px; background:none; border:1px solid var(--border); color:#cbd5e1;" onclick="vstoupitBezHesla()">👁 Vstoupit bez hesla</button>
             </div>`;
         document.getElementById('pujcovna-heslo-input').focus();
+    }
+
+    function vstoupitBezHesla() {
+        pujcovnaReadOnly = true;
+        const app = document.getElementById('pujcovna-app');
+        app.innerHTML = `
+            <div class="vykony-header-row">
+                <div class="vykony-jmeno-title">👁 Zapůjčené nástroje</div>
+                <button class="logout-btn" onclick="pujcovnaReadOnly=false; zobrazPrihlaseniPujcovna();">Zpět na přihlášení</button>
+            </div>
+            <div id="pujcovna-tab-content"></div>`;
+        zobrazZapujceno();
     }
 
     function overitHesloPujcovna() {
@@ -817,6 +831,7 @@
         const zadane = ocistitBunku(input.value);
         if (zadane === PUJCOVNA_HESLO) {
             pujcovnaOdemcena = true;
+            pujcovnaReadOnly = false;
             zobrazPujcovnaTaby('nova');
         } else {
             errorEl.textContent = 'Nesprávné heslo. Zkuste to znovu.';
@@ -975,7 +990,7 @@
                             </div>
                         </div>
                         <div id="akce-${z.id}">
-                            <button class="vratit-btn" onclick="dotazNaVraceni('${z.id}')">Vrátit</button>
+                            ${pujcovnaReadOnly ? '' : `<button class="vratit-btn" onclick="dotazNaVraceni('${z.id}')">Vrátit</button>`}
                         </div>
                     </div>
                     <div class="zapujcka-nastroje-list">${nastrojeHtml}</div>
