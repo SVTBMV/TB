@@ -142,6 +142,53 @@
         .vykony-jmeno-title { font-size: 1.2rem; font-weight: 800; color: #fff; }
         .logout-btn { background: var(--card); border: 1px solid var(--error); color: var(--error); padding: 8px 16px; border-radius: 8px; cursor: pointer; font-weight: bold; }
         .logout-btn:hover { background: rgba(239, 68, 68, 0.15); }
+
+        /* Půjčovna nářadí */
+        #pujcovna-content { display: none; }
+        .pujcovna-tabs { display: flex; gap: 12px; margin-bottom: 25px; flex-wrap: wrap; }
+        .pujcovna-tab { flex: 1; min-width: 160px; background: var(--card); border: 2px solid var(--border); border-radius: 12px; padding: 16px; text-align: center; font-weight: bold; cursor: pointer; transition: all 0.2s; }
+        .pujcovna-tab:hover { border-color: var(--accent); background: #2d3a6d; }
+        .pujcovna-tab.active { border-color: var(--accent); background: var(--accent); color: #000; }
+
+        .form-box { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 25px; }
+        .form-box label { display: block; font-size: 0.85rem; color: #94a3b8; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
+        .form-box input[type=text] { width: 100%; background: #0f172a; border: 1px solid var(--border); padding: 13px; border-radius: 8px; color: white; outline: none; box-sizing: border-box; font-size: 1rem; margin-bottom: 18px; }
+        .form-box input[type=text]:focus { border-color: var(--accent); }
+
+        .nastroj-radek { display: flex; gap: 8px; margin-bottom: 10px; align-items: center; }
+        .nastroj-radek input[type=text] { margin-bottom: 0; flex: 1; }
+        .icon-btn { background: #0f172a; border: 1px solid var(--border); color: var(--accent); width: 46px; height: 46px; min-width: 46px; border-radius: 8px; cursor: pointer; font-size: 1.1rem; display: flex; align-items: center; justify-content: center; }
+        .icon-btn:hover { border-color: var(--accent); background: #2d3a6d; }
+        .icon-btn.remove { color: var(--error); }
+        .icon-btn.remove:hover { background: rgba(239, 68, 68, 0.15); border-color: var(--error); }
+        .add-nastroj-btn { background: none; border: 2px dashed var(--border); color: var(--accent); padding: 12px; border-radius: 8px; cursor: pointer; width: 100%; font-weight: bold; margin-bottom: 20px; }
+        .add-nastroj-btn:hover { border-color: var(--accent); background: rgba(56, 189, 248, 0.08); }
+        .save-btn { background: var(--success); color: #000; font-weight: bold; border: none; padding: 15px; border-radius: 8px; cursor: pointer; font-size: 1rem; width: 100%; }
+        .save-btn:hover { opacity: 0.9; }
+
+        .zapujcka-karta { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 20px; margin-bottom: 16px; }
+        .zapujcka-hlavicka { display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 10px; margin-bottom: 14px; }
+        .zapujcka-komu { font-size: 1.15rem; font-weight: 800; color: #fff; }
+        .zapujcka-datumy { font-size: 0.82rem; color: #94a3b8; margin-top: 4px; }
+        .zapujcka-datumy .po-terminu { color: var(--error); font-weight: bold; }
+        .zapujcka-nastroje-list { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
+        .zapujcka-nastroj-item { display: flex; justify-content: space-between; background: rgba(15, 23, 42, 0.5); border-radius: 8px; padding: 10px 14px; font-size: 0.9rem; }
+        .zapujcka-nastroj-cislo { color: var(--accent); font-weight: bold; }
+        .zapujcka-nastroj-info { color: #cbd5e1; }
+        .zapujcka-nastroj-delka { color: #64748b; }
+        .vratit-btn { background: none; border: 1px solid var(--error); color: var(--error); padding: 9px 18px; border-radius: 8px; cursor: pointer; font-weight: bold; }
+        .vratit-btn:hover { background: rgba(239, 68, 68, 0.15); }
+        .vratit-potvrzeni { display: flex; align-items: center; gap: 10px; background: rgba(239, 68, 68, 0.1); border: 1px solid var(--error); padding: 10px 14px; border-radius: 8px; }
+        .vratit-potvrzeni span { font-size: 0.9rem; color: #f87171; font-weight: 600; }
+        .vratit-ano { background: var(--error); color: #fff; border: none; padding: 7px 16px; border-radius: 6px; cursor: pointer; font-weight: bold; }
+        .vratit-ne { background: none; border: 1px solid var(--border); color: #cbd5e1; padding: 7px 16px; border-radius: 6px; cursor: pointer; }
+
+        /* Skener Data Matrix */
+        .scanner-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 1000; align-items: center; justify-content: center; flex-direction: column; gap: 15px; padding: 20px; box-sizing: border-box; }
+        .scanner-overlay.open { display: flex; }
+        .scanner-overlay video { width: 100%; max-width: 480px; border-radius: 12px; border: 2px solid var(--accent); background: #000; }
+        .scanner-overlay .scanner-hint { color: #94a3b8; font-size: 0.85rem; text-align: center; }
+        .scanner-overlay .scanner-close { background: var(--card); border: 1px solid var(--border); color: white; padding: 10px 22px; border-radius: 8px; cursor: pointer; font-weight: bold; }
     </style>
 </head>
 <body>
@@ -157,6 +204,7 @@
         <div class="hub-btn" onclick="switchView('tlak')">📉 Výpočet tlaku pro ohyb</div>
         <div class="hub-btn" onclick="switchView('stroje')">⚙️ Přehled strojů</div>
         <div class="hub-btn" onclick="switchView('vykony')">📊 Výkony obsluh TB</div>
+        <div class="hub-btn" onclick="switchView('pujcovna')">🧰 Půjčovna nářadí</div>
     </div>
 
     <div id="main-content">
@@ -241,6 +289,17 @@
         <div id="vykony-app"><div class="status-msg">Načítám seznam osobních čísel...</div></div>
     </div>
 
+    <div id="pujcovna-content">
+        <div class="back-to-hub" onclick="switchView('hub')">← Zpět do menu</div>
+        <div id="pujcovna-app"></div>
+    </div>
+
+</div>
+
+<div class="scanner-overlay" id="scanner-overlay">
+    <video id="scanner-video" autoplay playsinline muted></video>
+    <div class="scanner-hint">Namiřte kameru na Data Matrix kód nástroje</div>
+    <button class="scanner-close" onclick="zavritSkener()">Zavřít</button>
 </div>
 
 <script>
@@ -259,12 +318,23 @@
     const VYKONY_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTVAmmKGsoC5QDpr7tYy_abrgK3fom1TGwFUdNOdZimmjOZe0zDHVnqHqJlV9ZBIYWN6oPieLTlZQPh/pub?output=csv';
     const DEFAULT_HESLO = '159159';
     const MASTER_HESLO = '15748622';
+    const PUJCOVNA_HESLO = '225588';
+    const NASTROJE_DB_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTbI8O4YjzC3yd6rOHsVv3ERYD2z9m9QIegQkZP26JRDXmErkxpu_oktt3OUstMI9qTk_7V_eRA16VY/pub?output=csv';
+    // Sem vlož URL svého nasazeného Google Apps Script Web App (viz návod) - bude končit na /exec
+    const PUJCOVNA_API_URL = 'https://script.google.com/macros/s/AKfycbztmogmvEYqTI-fd33_-tW9oUbBQkSBSCpSxurSpWsIhQvNTONDvwy7cBIfscNaC75aJQ/exec';
     
     let globalData = {}; 
     let globalMachinesData = []; // Databáze všech strojů ze sheetu
     let globalVykonyData = [];   // Syrové řádky výkonů: {datum, minuty, jmeno, osCislo}
     let globalHeslaMap = {};     // osCislo -> heslo
     let prihlasenaOsoba = null;  // aktuálně přihlášené osobní číslo
+    let pujcovnaOdemcena = false;
+    let globalNastrojeDB = {};   // číslo nástroje -> {nazev, delka}
+    let novaZapujckaRadky = [];  // pole ID řádků rozpracované nové zápůjčky
+    let novaZapujckaCounter = 0;
+    let aktivniScanRadekId = null;
+    let scannerStream = null;
+    let scannerReader = null;
 
     // Automatické načtení strojů ihned po načtení stránky, aby byly dostupné i v kalkulačce tlaku
     window.addEventListener('DOMContentLoaded', () => {
@@ -278,6 +348,7 @@
         document.getElementById('pressure-content').style.display = view === 'tlak' ? 'block' : 'none';
         document.getElementById('machines-content').style.display = view === 'stroje' ? 'block' : 'none';
         document.getElementById('vykony-content').style.display = view === 'vykony' ? 'block' : 'none';
+        document.getElementById('pujcovna-content').style.display = view === 'pujcovna' ? 'block' : 'none';
         
         const title = document.getElementById('app-title');
         const subtitle = document.getElementById('app-subtitle');
@@ -300,6 +371,10 @@
             title.innerText = "VÝKONY OBSLUH TB";
             subtitle.innerText = "Přehled odvedené práce a bonusů podle dat v tabulce";
             if(globalVykonyData.length === 0) nacistVykony();
+        } else if(view === 'pujcovna') {
+            title.innerText = "PŮJČOVNA NÁŘADÍ";
+            subtitle.innerText = "Evidence zápůjček nástrojů";
+            zobrazPrihlaseniPujcovna();
         }
     }
 
@@ -665,6 +740,317 @@
         });
 
         app.innerHTML = html;
+    }
+
+    // --- LOGIKA PRO PŮJČOVNU NÁŘADÍ ---
+
+    async function nactiZapujckyZUloziste() {
+        try {
+            const response = await fetch(PUJCOVNA_API_URL);
+            const data = await response.json();
+            return Array.isArray(data) ? data : [];
+        } catch (e) {
+            return null; // null = chyba spojení (odlišujeme od prázdného seznamu)
+        }
+    }
+
+    async function pridatZapujckuVzdalene(zapujcka) {
+        await fetch(PUJCOVNA_API_URL, {
+            method: 'POST',
+            body: JSON.stringify({ action: 'add', ...zapujcka })
+        });
+    }
+
+    async function smazatZapujckuVzdalene(id) {
+        await fetch(PUJCOVNA_API_URL, {
+            method: 'POST',
+            body: JSON.stringify({ action: 'delete', id })
+        });
+    }
+
+    async function nacistNastrojeDB() {
+        if (Object.keys(globalNastrojeDB).length > 0) return;
+        try {
+            const response = await fetch(NASTROJE_DB_URL);
+            const text = await response.text();
+            const rows = parseCSV(text);
+            rows.forEach((cols, idx) => {
+                const cislo = ocistitBunku(cols[0]);
+                const nazev = ocistitBunku(cols[1]);
+                const delka = ocistitBunku(cols[2]);
+                if (!cislo) return;
+                if (idx === 0 && !nazev && !delka) return; // prázdná hlavička
+                globalNastrojeDB[cislo.toLowerCase()] = { nazev, delka, cislo };
+            });
+        } catch (e) {
+            globalNastrojeDB = {};
+        }
+    }
+
+    function zobrazPrihlaseniPujcovna() {
+        const app = document.getElementById('pujcovna-app');
+        if (pujcovnaOdemcena) {
+            zobrazPujcovnaTaby('nova');
+            return;
+        }
+        app.innerHTML = `
+            <div class="login-box">
+                <h3>🔒 Zadejte heslo</h3>
+                <p style="color:#94a3b8; font-size:0.9rem; margin-top:-10px;">Půjčovna nářadí</p>
+                <input type="password" id="pujcovna-heslo-input" placeholder="Heslo" inputmode="numeric"
+                    onkeydown="if(event.key==='Enter') overitHesloPujcovna()">
+                <div class="login-error" id="pujcovna-heslo-error"></div>
+                <button onclick="overitHesloPujcovna()">Vstoupit</button>
+            </div>`;
+        document.getElementById('pujcovna-heslo-input').focus();
+    }
+
+    function overitHesloPujcovna() {
+        const input = document.getElementById('pujcovna-heslo-input');
+        const errorEl = document.getElementById('pujcovna-heslo-error');
+        const zadane = ocistitBunku(input.value);
+        if (zadane === PUJCOVNA_HESLO) {
+            pujcovnaOdemcena = true;
+            zobrazPujcovnaTaby('nova');
+        } else {
+            errorEl.textContent = 'Nesprávné heslo. Zkuste to znovu.';
+            input.value = '';
+            input.focus();
+        }
+    }
+
+    function zobrazPujcovnaTaby(aktivni) {
+        const app = document.getElementById('pujcovna-app');
+        app.innerHTML = `
+            <div class="pujcovna-tabs">
+                <div class="pujcovna-tab ${aktivni === 'nova' ? 'active' : ''}" onclick="zobrazPujcovnaTaby('nova')">➕ Nová zápůjčka</div>
+                <div class="pujcovna-tab ${aktivni === 'zapujceno' ? 'active' : ''}" onclick="zobrazPujcovnaTaby('zapujceno')">📋 Zapůjčeno</div>
+            </div>
+            <div id="pujcovna-tab-content"></div>`;
+
+        if (aktivni === 'nova') {
+            zobrazNovaZapujcka();
+        } else {
+            zobrazZapujceno();
+        }
+    }
+
+    // --- Nová zápůjčka ---
+    function zobrazNovaZapujcka() {
+        novaZapujckaRadky = [];
+        novaZapujckaCounter = 0;
+        pridatRadekNastroj();
+        vykresliFormularZapujcky();
+    }
+
+    function pridatRadekNastroj() {
+        novaZapujckaCounter++;
+        novaZapujckaRadky.push({ id: novaZapujckaCounter, hodnota: '' });
+        vykresliFormularZapujcky();
+    }
+
+    function odebratRadekNastroj(id) {
+        novaZapujckaRadky = novaZapujckaRadky.filter(r => r.id !== id);
+        if (novaZapujckaRadky.length === 0) pridatRadekNastroj();
+        else vykresliFormularZapujcky();
+    }
+
+    function aktualizovatRadekNastroj(id, hodnota) {
+        const r = novaZapujckaRadky.find(r => r.id === id);
+        if (r) r.hodnota = hodnota;
+    }
+
+    function vykresliFormularZapujcky() {
+        const wrap = document.getElementById('pujcovna-tab-content');
+        if (!wrap) return;
+
+        const komuHodnota = document.getElementById('zapujcka-komu') ? document.getElementById('zapujcka-komu').value : '';
+
+        let radkyHtml = novaZapujckaRadky.map(r => `
+            <div class="nastroj-radek">
+                <input type="text" placeholder="Číslo nástroje" value="${r.hodnota.replace(/"/g, '&quot;')}"
+                    oninput="aktualizovatRadekNastroj(${r.id}, this.value)">
+                <button type="button" class="icon-btn" title="Sejmout Data Matrix kód" onclick="otevritSkener(${r.id})">📷</button>
+                <button type="button" class="icon-btn remove" title="Odebrat řádek" onclick="odebratRadekNastroj(${r.id})">✕</button>
+            </div>`).join('');
+
+        wrap.innerHTML = `
+            <div class="form-box">
+                <label for="zapujcka-komu">Komu:</label>
+                <input type="text" id="zapujcka-komu" placeholder="Jméno osoby" value="${(komuHodnota || '').replace(/"/g, '&quot;')}">
+
+                <label>Nástroje:</label>
+                <div id="nastroje-radky">${radkyHtml}</div>
+                <button type="button" class="add-nastroj-btn" onclick="pridatRadekNastroj()">+ Přidat nástroj</button>
+
+                <div class="login-error" id="zapujcka-error"></div>
+                <button type="button" class="save-btn" onclick="ulozitZapujcku()">💾 Uložit zápůjčku</button>
+            </div>`;
+    }
+
+    async function ulozitZapujcku() {
+        const komu = ocistitBunku(document.getElementById('zapujcka-komu').value);
+        const cisla = novaZapujckaRadky.map(r => ocistitBunku(r.hodnota)).filter(v => v !== '');
+        const errorEl = document.getElementById('zapujcka-error');
+
+        if (!komu) {
+            errorEl.textContent = 'Vyplňte prosím jméno v poli "Komu".';
+            return;
+        }
+        if (cisla.length === 0) {
+            errorEl.textContent = 'Přidejte alespoň jeden nástroj.';
+            return;
+        }
+        errorEl.textContent = 'Ukládám...';
+
+        const dnes = new Date();
+        const vraceni = new Date(dnes);
+        vraceni.setDate(vraceni.getDate() + 7);
+        const isoDnes = `${dnes.getFullYear()}-${String(dnes.getMonth()+1).padStart(2,'0')}-${String(dnes.getDate()).padStart(2,'0')}`;
+        const isoVraceni = `${vraceni.getFullYear()}-${String(vraceni.getMonth()+1).padStart(2,'0')}-${String(vraceni.getDate()).padStart(2,'0')}`;
+
+        try {
+            await pridatZapujckuVzdalene({
+                id: 'z' + Date.now(),
+                komu,
+                datumOd: isoDnes,
+                datumDo: isoVraceni,
+                nastroje: cisla
+            });
+            zobrazPujcovnaTaby('zapujceno');
+        } catch (e) {
+            errorEl.textContent = 'Zápůjčku se nepodařilo uložit. Zkontrolujte připojení k internetu.';
+        }
+    }
+
+    // --- Zapůjčeno ---
+    async function zobrazZapujceno() {
+        const wrap = document.getElementById('pujcovna-tab-content');
+        wrap.innerHTML = `<div class="status-msg">Načítám zápůjčky...</div>`;
+
+        const [zapujckyRaw] = await Promise.all([nactiZapujckyZUloziste(), nacistNastrojeDB()]);
+
+        if (zapujckyRaw === null) {
+            wrap.innerHTML = `<div class="msg red" style="display:block">Nepodařilo se načíst data ze sdíleného úložiště (Google Sheets). Zkontrolujte připojení nebo nastavení API URL.</div>`;
+            return;
+        }
+
+        const zapujcky = zapujckyRaw.slice().reverse();
+
+        if (zapujcky.length === 0) {
+            wrap.innerHTML = `<div class="status-msg">Momentálně nejsou evidovány žádné zápůjčky.</div>`;
+            return;
+        }
+
+        const dnesIso = new Date().toISOString().split('T')[0];
+
+        wrap.innerHTML = zapujcky.map(z => {
+            const poTerminu = z.datumDo < dnesIso;
+            const nastrojeHtml = z.nastroje.map(cislo => {
+                const info = globalNastrojeDB[String(cislo).toLowerCase()];
+                return `
+                    <div class="zapujcka-nastroj-item">
+                        <span><span class="zapujcka-nastroj-cislo">${cislo}</span>
+                        ${info ? ` — <span class="zapujcka-nastroj-info">${info.nazev}</span>` : ' — <span class="zapujcka-nastroj-info" style="color:#64748b;">neznámý nástroj</span>'}</span>
+                        ${info && info.delka ? `<span class="zapujcka-nastroj-delka">${info.delka} mm</span>` : ''}
+                    </div>`;
+            }).join('');
+
+            return `
+                <div class="zapujcka-karta" id="karta-${z.id}">
+                    <div class="zapujcka-hlavicka">
+                        <div>
+                            <div class="zapujcka-komu">👤 ${z.komu}</div>
+                            <div class="zapujcka-datumy">
+                                Zapůjčeno: ${formatDatumCZ(z.datumOd)} &nbsp;•&nbsp;
+                                Vrátit do: <span class="${poTerminu ? 'po-terminu' : ''}">${formatDatumCZ(z.datumDo)}${poTerminu ? ' (po termínu)' : ''}</span>
+                            </div>
+                        </div>
+                        <div id="akce-${z.id}">
+                            <button class="vratit-btn" onclick="dotazNaVraceni('${z.id}')">Vrátit</button>
+                        </div>
+                    </div>
+                    <div class="zapujcka-nastroje-list">${nastrojeHtml}</div>
+                </div>`;
+        }).join('');
+    }
+
+    function dotazNaVraceni(id) {
+        const akceEl = document.getElementById('akce-' + id);
+        if (!akceEl) return;
+        akceEl.innerHTML = `
+            <div class="vratit-potvrzeni">
+                <span>Chcete vrátit nástroje?</span>
+                <button class="vratit-ano" onclick="potvrditVraceni('${id}')">Ano</button>
+                <button class="vratit-ne" onclick="zrusitVraceni('${id}')">Ne</button>
+            </div>`;
+    }
+
+    function zrusitVraceni(id) {
+        const akceEl = document.getElementById('akce-' + id);
+        if (!akceEl) return;
+        akceEl.innerHTML = `<button class="vratit-btn" onclick="dotazNaVraceni('${id}')">Vrátit</button>`;
+    }
+
+    async function potvrditVraceni(id) {
+        const akceEl = document.getElementById('akce-' + id);
+        if (akceEl) akceEl.innerHTML = `<span style="color:#94a3b8; font-size:0.85rem;">Ukládám...</span>`;
+        try {
+            await smazatZapujckuVzdalene(id);
+        } catch (e) { /* i tak zkusíme obnovit seznam */ }
+        zobrazZapujceno();
+    }
+
+    // --- Skener Data Matrix (kamera) ---
+    function nactiZxingSkript() {
+        return new Promise((resolve, reject) => {
+            if (window.ZXing) { resolve(); return; }
+            const script = document.createElement('script');
+            script.src = 'https://unpkg.com/@zxing/library@0.20.0/umd/index.min.js';
+            script.onload = () => resolve();
+            script.onerror = () => reject(new Error('Knihovnu pro čtení kódů se nepodařilo načíst.'));
+            document.head.appendChild(script);
+        });
+    }
+
+    async function otevritSkener(radekId) {
+        aktivniScanRadekId = radekId;
+        const overlay = document.getElementById('scanner-overlay');
+        overlay.classList.add('open');
+
+        try {
+            await nactiZxingSkript();
+            const hints = new Map();
+            hints.set(window.ZXing.DecodeHintType.POSSIBLE_FORMATS, [window.ZXing.BarcodeFormat.DATA_MATRIX]);
+            scannerReader = new window.ZXing.BrowserMultiFormatReader(hints);
+
+            const videoEl = document.getElementById('scanner-video');
+            scannerReader.decodeFromConstraints(
+                { video: { facingMode: 'environment' } },
+                videoEl,
+                (result, err) => {
+                    if (result) {
+                        const text = result.getText();
+                        aktualizovatRadekNastroj(aktivniScanRadekId, text);
+                        vykresliFormularZapujcky();
+                        zavritSkener();
+                    }
+                }
+            );
+        } catch (e) {
+            alert('Kameru se nepodařilo spustit. Zkontrolujte prosím, že je stránka otevřená přes HTTPS a že jste povolili přístup ke kameře. Číslo nástroje můžete zadat i ručně.');
+            zavritSkener();
+        }
+    }
+
+    function zavritSkener() {
+        const overlay = document.getElementById('scanner-overlay');
+        overlay.classList.remove('open');
+        if (scannerReader) {
+            try { scannerReader.reset(); } catch (e) {}
+            scannerReader = null;
+        }
+        aktivniScanRadekId = null;
     }
 
     function vybratStrediskoStroje(jmenoStrediska) {
