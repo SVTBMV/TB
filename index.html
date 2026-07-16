@@ -2,7 +2,7 @@
 <html lang="cs">
 <head>
     <meta charset="UTF-8">
-    <title>Sklad Nástrojů, Výpočet Tlaku & Stroje</title>
+    <title>Sklad Nástrojů, Výpočet Tlaku & Stroje | v41</title>
     <style>
         :root {
             --bg: #0f172a; --card: #1e293b; --accent: #38bdf8; --text: #f1f5f9; --success: #22c55e; --error: #ef4444; --warning: #eab308; --border: #334155;
@@ -29,7 +29,7 @@
         .stredisko-btn:hover { border-color: var(--accent); background: #2d3a6d; transform: translateY(-2px); }
         .stredisko-btn.active { border-color: var(--accent); background: var(--accent); color: #000; }
 
-        #main-content, #pressure-content, #machines-content, #vykony-content { display: none; }
+        #main-content, #pressure-content, #machines-content { display: none; }
         
         input#search, input#search-machines { width: 100%; background: var(--card); border: 1px solid var(--border); padding: 15px; border-radius: 12px; color: white; margin-bottom: 30px; outline: none; box-sizing: border-box; font-size: 1rem; }
 
@@ -115,9 +115,6 @@
         .stredisko-stroj-row:last-child { border-bottom: none; }
 
         /* Výkony obsluh TB */
-        .osoba-btn { background: var(--card); border: 2px solid var(--border); border-radius: 12px; padding: 20px 10px; color: white; font-weight: bold; text-align: center; cursor: pointer; transition: all 0.2s; font-size: 1rem; display: flex; flex-direction: column; gap: 4px; }
-        .osoba-btn:hover { border-color: var(--accent); background: #2d3a6d; transform: translateY(-2px); }
-        .osoba-btn .osoba-jmeno { font-size: 0.75rem; color: #94a3b8; font-weight: 500; text-transform: none; letter-spacing: 0; }
         .login-box { max-width: 380px; margin: 30px auto; background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 30px; text-align: center; }
         .login-box h3 { margin-top: 0; color: var(--accent); }
         .login-box input { width: 100%; background: #0f172a; border: 1px solid var(--border); padding: 14px; border-radius: 8px; color: white; margin-bottom: 15px; outline: none; box-sizing: border-box; font-size: 1rem; text-align: center; letter-spacing: 2px; }
@@ -126,18 +123,6 @@
         .login-box button:hover { opacity: 0.9; }
         .login-error { color: var(--error); font-size: 0.85rem; margin-top: -5px; margin-bottom: 15px; min-height: 1em; }
 
-        .vykony-summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 15px; margin-bottom: 25px; }
-        .vykony-summary-card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 18px; text-align: center; }
-        .vykony-summary-card .val { display: block; font-size: 1.8rem; font-weight: 800; color: var(--accent); }
-        .vykony-summary-card .lbl { display: block; font-size: 0.75rem; color: #94a3b8; text-transform: uppercase; margin-top: 4px; letter-spacing: 0.5px; }
-
-        table.vykony-table { width: 100%; border-collapse: collapse; background: var(--card); border-radius: 12px; overflow: hidden; }
-        table.vykony-table th, table.vykony-table td { padding: 12px 14px; text-align: center; border-bottom: 1px solid var(--border); font-size: 0.9rem; }
-        table.vykony-table th { background: #1e294b; color: var(--accent); text-transform: uppercase; font-size: 0.75rem; letter-spacing: 0.5px; }
-        table.vykony-table tr:last-child td { border-bottom: none; }
-        table.vykony-table td.ano { color: var(--success); font-weight: bold; }
-        table.vykony-table td.ne { color: #64748b; }
-        table.vykony-table td.bonus-castka { color: var(--warning); font-weight: 800; }
         .vykony-header-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-wrap: wrap; gap: 10px; }
         .vykony-jmeno-title { font-size: 1.2rem; font-weight: 800; color: #fff; }
         .logout-btn { background: var(--card); border: 1px solid var(--error); color: var(--error); padding: 8px 16px; border-radius: 8px; cursor: pointer; font-weight: bold; }
@@ -205,7 +190,6 @@
         <div class="hub-btn" onclick="switchView('sklad')">📦 Sklad nástrojů</div>
         <div class="hub-btn" onclick="switchView('tlak')">📉 Výpočet tlaku pro ohyb</div>
         <div class="hub-btn" onclick="switchView('stroje')">⚙️ Přehled strojů</div>
-        <div class="hub-btn" onclick="switchView('vykony')">📊 Výkony obsluh TB</div>
         <div class="hub-btn" onclick="switchView('pujcovna')">🧰 Půjčovna nářadí</div>
     </div>
 
@@ -285,12 +269,6 @@
         <div id="machines-app">Vyberte středisko výše...</div>
     </div>
 
-    <div id="vykony-content">
-        <div class="back-to-hub" onclick="switchView('hub')">← Zpět do menu</div>
-        <div class="strediska-grid" id="osoby-grid"></div>
-        <div id="vykony-app"><div class="status-msg">Načítám seznam osobních čísel...</div></div>
-    </div>
-
     <div id="pujcovna-content">
         <div class="back-to-hub" onclick="switchView('hub')">← Zpět do menu</div>
         <div id="pujcovna-app"></div>
@@ -316,10 +294,6 @@
 
     const STROJE_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQRxdWjM7PN8XJXWA3mX0M6dlKmnpE1rwfY6cSiPv9A4pDcCJqeWzl8e6YjHVAWW6cs6pM12KXpAK3l/pub?output=tsv';
 
-    const HESLA_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRfPvz0BUm5LJMrwQz1ItnnqttCyVc3UA_ddGMJsEcMnMLGvxietpnpkX_gK1qh3clPJL68BZ8eELgw/pub?output=csv';
-    const VYKONY_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTVAmmKGsoC5QDpr7tYy_abrgK3fom1TGwFUdNOdZimmjOZe0zDHVnqHqJlV9ZBIYWN6oPieLTlZQPh/pub?output=csv';
-    const DEFAULT_HESLO = '159159';
-    const MASTER_HESLO = '15748622';
     const PUJCOVNA_HESLO = '225588';
     const NASTROJE_DB_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTbI8O4YjzC3yd6rOHsVv3ERYD2z9m9QIegQkZP26JRDXmErkxpu_oktt3OUstMI9qTk_7V_eRA16VY/pub?output=csv';
     // Sem vlož URL svého nasazeného Google Apps Script Web App (viz návod) - bude končit na /exec
@@ -327,9 +301,6 @@
     
     let globalData = {}; 
     let globalMachinesData = []; // Databáze všech strojů ze sheetu
-    let globalVykonyData = [];   // Syrové řádky výkonů: {datum, minuty, jmeno, osCislo}
-    let globalHeslaMap = {};     // osCislo -> heslo
-    let prihlasenaOsoba = null;  // aktuálně přihlášené osobní číslo
     let pujcovnaOdemcena = false;
     let pujcovnaReadOnly = false;
     let globalNastrojeDB = {};   // číslo nástroje -> {nazev, delka}
@@ -350,7 +321,6 @@
         document.getElementById('main-content').style.display = view === 'sklad' ? 'block' : 'none';
         document.getElementById('pressure-content').style.display = view === 'tlak' ? 'block' : 'none';
         document.getElementById('machines-content').style.display = view === 'stroje' ? 'block' : 'none';
-        document.getElementById('vykony-content').style.display = view === 'vykony' ? 'block' : 'none';
         document.getElementById('pujcovna-content').style.display = view === 'pujcovna' ? 'block' : 'none';
         
         const title = document.getElementById('app-title');
@@ -370,10 +340,6 @@
             title.innerText = "PŘEHLED STROJŮ";
             subtitle.innerText = "Parametry a specifikace zařízení v jednotlivých střediscích";
             if(globalMachinesData.length === 0) nacistStroje(true);
-        } else if(view === 'vykony') {
-            title.innerText = "VÝKONY OBSLUH TB";
-            subtitle.innerText = "Přehled odvedené práce a bonusů podle dat v tabulce";
-            if(globalVykonyData.length === 0) nacistVykony();
         } else if(view === 'pujcovna') {
             title.innerText = "PŮJČOVNA NÁŘADÍ";
             subtitle.innerText = "Evidence zápůjček nástrojů";
@@ -456,34 +422,6 @@
         return v.replace(/\u00A0/g, ' ').trim().replace(/^'/, '').trim();
     }
 
-    // Vrátí datum ve formátu YYYY-MM-DD (ignoruje čas), nebo null pokud se nepodaří rozpoznat
-    function normalizovatDatum(raw) {
-        if (!raw) return null;
-        let s = raw.trim();
-        if (!s) return null;
-        // odseknout případný čas za mezerou
-        s = s.split(' ')[0];
-
-        // formát YYYY-MM-DD
-        let m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
-        if (m) return `${m[1]}-${m[2].padStart(2,'0')}-${m[3].padStart(2,'0')}`;
-
-        // formát DD.MM.YYYY nebo D.M.YYYY
-        m = s.match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})$/);
-        if (m) return `${m[3]}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}`;
-
-        // formát MM/DD/YYYY nebo M/D/YYYY (typický export Google Sheets)
-        m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
-        if (m) return `${m[3]}-${m[1].padStart(2,'0')}-${m[2].padStart(2,'0')}`;
-
-        // poslední pokus - nechat JS parser rozhodnout
-        const d = new Date(s);
-        if (!isNaN(d.getTime())) {
-            return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
-        }
-        return null;
-    }
-
     function formatDatumCZ(iso) {
         const m = String(iso || '').match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
         if (m) return `${parseInt(m[3],10)}.${parseInt(m[2],10)}.${m[1]}`;
@@ -491,262 +429,6 @@
         const d = new Date(iso);
         if (!isNaN(d.getTime())) return `${d.getDate()}.${d.getMonth()+1}.${d.getFullYear()}`;
         return String(iso || '');
-    }
-
-    async function nacistHesla() {
-        try {
-            const response = await fetch(HESLA_URL);
-            const text = await response.text();
-            const rows = parseCSV(text);
-            globalHeslaMap = {};
-            rows.forEach((cols, idx) => {
-                const osCislo = ocistitBunku(cols[0]);
-                const heslo = ocistitBunku(cols[1]);
-                if (!osCislo) return;
-                // Přeskočit případnou hlavičku (např. "Osobní číslo" / "Heslo") jen na prvním řádku
-                if (idx === 0) {
-                    const nizke = osCislo.toLowerCase();
-                    if (nizke.includes('číslo') || nizke.includes('cislo') || nizke.includes('osob')) return;
-                }
-                globalHeslaMap[osCislo.toLowerCase()] = heslo || DEFAULT_HESLO;
-            });
-        } catch (e) {
-            globalHeslaMap = {};
-        }
-    }
-
-    async function nacistVykony() {
-        document.getElementById('vykony-app').innerHTML = `<div class="status-msg">Načítám seznam osobních čísel...</div>`;
-        try {
-            await nacistHesla();
-            const response = await fetch(VYKONY_URL);
-            const text = await response.text();
-            const rows = parseCSV(text);
-
-            globalVykonyData = [];
-            rows.forEach(cols => {
-                const datumIso = normalizovatDatum(ocistitBunku(cols[0]));
-                const minuty = parseFloat(ocistitBunku(cols[1]).replace(',', '.'));
-                const jmeno = ocistitBunku(cols[2]);
-                const osCislo = ocistitBunku(cols[3]);
-                if (!datumIso || isNaN(minuty) || !osCislo) return;
-                globalVykonyData.push({ datum: datumIso, minuty, jmeno, osCislo });
-            });
-
-            renderOsobyGrid();
-            document.getElementById('vykony-app').innerHTML = `<div class="status-msg">Vyberte výše své osobní číslo...</div>`;
-        } catch (e) {
-            document.getElementById('vykony-app').innerHTML = `<div class="msg red" style="display:block">Chyba při načítání dat výkonů. Zkontrolujte připojení nebo odkaz na Sheet.</div>`;
-        }
-    }
-
-    function renderOsobyGrid() {
-        const grid = document.getElementById('osoby-grid');
-        const cisla = [...new Set(globalVykonyData.map(r => r.osCislo))].sort();
-        if (cisla.length === 0) {
-            grid.innerHTML = '';
-            return;
-        }
-        let html = `
-            <div class="osoba-btn" id="osoba-btn-master" style="border-color:var(--warning);" onclick="vybratKompletniPrehled()">
-                <span>📋 Kompletní přehled</span>
-            </div>`;
-        html += cisla.map(cislo => `
-            <div class="osoba-btn" id="osoba-btn-${cislo}" onclick="vybratOsobu('${cislo}')">
-                <span>${cislo}</span>
-            </div>
-        `).join('');
-        grid.innerHTML = html;
-    }
-
-    function vybratOsobu(osCislo) {
-        prihlasenaOsoba = null;
-        document.querySelectorAll('.osoba-btn').forEach(b => b.classList.remove('active'));
-        const btn = document.getElementById(`osoba-btn-${osCislo}`);
-        if (btn) btn.classList.add('active');
-
-        const app = document.getElementById('vykony-app');
-        app.innerHTML = `
-            <div class="login-box">
-                <h3>🔒 Zadejte heslo</h3>
-                <p style="color:#94a3b8; font-size:0.9rem; margin-top:-10px;">Osobní číslo: <strong>${osCislo}</strong></p>
-                <input type="password" id="heslo-input" placeholder="Heslo" inputmode="numeric"
-                    onkeydown="if(event.key==='Enter') overitHeslo('${osCislo}')">
-                <div class="login-error" id="heslo-error"></div>
-                <button onclick="overitHeslo('${osCislo}')">Vstoupit</button>
-            </div>`;
-        document.getElementById('heslo-input').focus();
-    }
-
-    function overitHeslo(osCislo) {
-        const input = document.getElementById('heslo-input');
-        const errorEl = document.getElementById('heslo-error');
-        const zadane = ocistitBunku(input.value);
-        const spravne = globalHeslaMap[osCislo.toLowerCase()] || DEFAULT_HESLO;
-
-        if (zadane === spravne || zadane === MASTER_HESLO) {
-            prihlasenaOsoba = osCislo;
-            renderVykonyReport(osCislo);
-        } else {
-            errorEl.textContent = 'Nesprávné heslo. Zkuste to znovu.';
-            input.value = '';
-            input.focus();
-        }
-    }
-
-    function vybratKompletniPrehled() {
-        prihlasenaOsoba = null;
-        document.querySelectorAll('.osoba-btn').forEach(b => b.classList.remove('active'));
-        const btn = document.getElementById('osoba-btn-master');
-        if (btn) btn.classList.add('active');
-
-        const app = document.getElementById('vykony-app');
-        app.innerHTML = `
-            <div class="login-box">
-                <h3>🔒 Zadejte master heslo</h3>
-                <p style="color:#94a3b8; font-size:0.9rem; margin-top:-10px;">Kompletní přehled všech obsluh</p>
-                <input type="password" id="heslo-input" placeholder="Heslo" inputmode="numeric"
-                    onkeydown="if(event.key==='Enter') overitHesloMaster()">
-                <div class="login-error" id="heslo-error"></div>
-                <button onclick="overitHesloMaster()">Vstoupit</button>
-            </div>`;
-        document.getElementById('heslo-input').focus();
-    }
-
-    function overitHesloMaster() {
-        const input = document.getElementById('heslo-input');
-        const errorEl = document.getElementById('heslo-error');
-        const zadane = ocistitBunku(input.value);
-
-        if (zadane === MASTER_HESLO) {
-            renderKompletniPrehled();
-        } else {
-            errorEl.textContent = 'Nesprávné heslo. Zkuste to znovu.';
-            input.value = '';
-            input.focus();
-        }
-    }
-
-    function odhlasitOsobu() {
-        prihlasenaOsoba = null;
-        document.querySelectorAll('.osoba-btn').forEach(b => b.classList.remove('active'));
-        document.getElementById('vykony-app').innerHTML = `<div class="status-msg">Vyberte výše své osobní číslo...</div>`;
-    }
-
-    // Vygeneruje HTML blok se souhrnem a tabulkou pro dané osobní číslo (bez obalu app.innerHTML)
-    function generujBlokVykonu(osCislo, sTlacitkemOdhlasit, sTabulkouDnu) {
-        if (sTabulkouDnu === undefined) sTabulkouDnu = true;
-        const zaznamy = globalVykonyData.filter(r => r.osCislo === osCislo);
-        const jmeno = zaznamy.length > 0 ? zaznamy[0].jmeno : '';
-
-        // Součet minut po dnech
-        const podleDnu = {};
-        zaznamy.forEach(r => {
-            podleDnu[r.datum] = (podleDnu[r.datum] || 0) + r.minuty;
-        });
-
-        const dny = Object.keys(podleDnu).sort();
-
-        const hodnotyMinut = dny.map(d => Math.round(podleDnu[d]));
-        const nejvyssiVykon = hodnotyMinut.length > 0 ? Math.max(...hodnotyMinut) : 0;
-        const nejnizsiVykon = hodnotyMinut.length > 0 ? Math.min(...hodnotyMinut) : 0;
-        const prumerVykon = hodnotyMinut.length > 0
-            ? Math.round(hodnotyMinut.reduce((a, b) => a + b, 0) / hodnotyMinut.length)
-            : 0;
-
-        let pocetNizsiBonus = 0;
-        let pocetVyssiBonus = 0;
-        let celkemBonus = 0;
-
-        let radkyHtml = '';
-        dny.forEach(datumIso => {
-            const minuty = Math.round(podleDnu[datumIso]);
-            const dosahlNizsiho = minuty >= 250 && minuty <= 300;
-            const dosahlVyssiho = minuty > 300;
-            const bonus1 = dosahlNizsiho ? 'ANO' : 'NE';
-            const bonus2 = dosahlVyssiho ? 'ANO' : 'NE';
-            let castka = 0;
-            if (dosahlNizsiho) { castka = 200; pocetNizsiBonus++; }
-            else if (dosahlVyssiho) { castka = minuty; pocetVyssiBonus++; }
-            celkemBonus += castka;
-
-            radkyHtml += `
-                <tr>
-                    <td>${formatDatumCZ(datumIso)}</td>
-                    <td>${minuty} min</td>
-                    <td class="${dosahlNizsiho ? 'ano' : 'ne'}">${bonus1}</td>
-                    <td class="${dosahlVyssiho ? 'ano' : 'ne'}">${bonus2}</td>
-                    <td class="bonus-castka">${castka > 0 ? castka + ' Kč' : '-'}</td>
-                </tr>`;
-        });
-
-        const obdobiText = dny.length > 0
-            ? (dny.length === 1 ? formatDatumCZ(dny[0]) : `${formatDatumCZ(dny[0])} – ${formatDatumCZ(dny[dny.length - 1])}`)
-            : 'bez záznamů';
-
-        const odhlasitHtml = sTlacitkemOdhlasit ? `<button class="logout-btn" onclick="odhlasitOsobu()">Odhlásit</button>` : '';
-
-        if (dny.length === 0) {
-            return `
-                <div class="vykony-header-row">
-                    <div class="vykony-jmeno-title">${jmeno} (${osCislo}) — ${obdobiText}</div>
-                    ${odhlasitHtml}
-                </div>
-                <div class="status-msg">Pro toto osobní číslo nejsou v tabulce zaznamenány žádné odvedené výkony.</div>`;
-        }
-
-        return `
-            <div class="vykony-header-row">
-                <div class="vykony-jmeno-title">${jmeno} (${osCislo}) — ${obdobiText}</div>
-                ${odhlasitHtml}
-            </div>
-            <div class="vykony-summary">
-                <div class="vykony-summary-card"><span class="val">${pocetNizsiBonus}</span><span class="lbl">Dní s bonusem 250–300 min</span></div>
-                <div class="vykony-summary-card"><span class="val">${pocetVyssiBonus}</span><span class="lbl">Dní s bonusem nad 300 min</span></div>
-                <div class="vykony-summary-card"><span class="val" style="color:var(--warning);">${celkemBonus} Kč</span><span class="lbl">Celkový bonus za období</span></div>
-            </div>
-            <div class="vykony-summary">
-                <div class="vykony-summary-card"><span class="val">${nejnizsiVykon} min</span><span class="lbl">Nejnižší výkon</span></div>
-                <div class="vykony-summary-card"><span class="val">${nejvyssiVykon} min</span><span class="lbl">Nejvyšší výkon</span></div>
-                <div class="vykony-summary-card"><span class="val">${prumerVykon} min</span><span class="lbl">Průměr výkonu</span></div>
-            </div>
-            ${sTabulkouDnu ? `
-            <table class="vykony-table">
-                <thead>
-                    <tr>
-                        <th>Datum</th>
-                        <th>Odvedený čas</th>
-                        <th>Bonus 250–300 min</th>
-                        <th>Bonus nad 300 min</th>
-                        <th>Bonus</th>
-                    </tr>
-                </thead>
-                <tbody>${radkyHtml}</tbody>
-            </table>` : ''}`;
-    }
-
-    function renderVykonyReport(osCislo) {
-        const app = document.getElementById('vykony-app');
-        app.innerHTML = generujBlokVykonu(osCislo, true);
-    }
-
-    function renderKompletniPrehled() {
-        const cisla = [...new Set(globalVykonyData.map(r => r.osCislo))].sort();
-        const app = document.getElementById('vykony-app');
-
-        let html = `
-            <div class="vykony-header-row">
-                <div class="vykony-jmeno-title">📋 Kompletní přehled — všechny obsluhy (${cisla.length})</div>
-                <button class="logout-btn" onclick="odhlasitOsobu()">Odhlásit</button>
-            </div>`;
-
-        cisla.forEach((cislo, idx) => {
-            html += `<div style="${idx > 0 ? 'margin-top:35px; padding-top:25px; border-top:1px solid var(--border);' : 'margin-top:10px;'}">`;
-            html += generujBlokVykonu(cislo, false, false);
-            html += `</div>`;
-        });
-
-        app.innerHTML = html;
     }
 
     // --- LOGIKA PRO PŮJČOVNU NÁŘADÍ ---
