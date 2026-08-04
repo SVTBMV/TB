@@ -135,6 +135,19 @@
         .pujcovna-tab:hover { border-color: var(--accent); background: #2d3a6d; }
         .pujcovna-tab.active { border-color: var(--accent); background: var(--accent); color: #000; }
 
+        .pujcovna-search-wrap { position: relative; margin-bottom: 18px; }
+        .pujcovna-search-wrap input#pujcovna-search {
+            width: 100%; background: var(--card); border: 1px solid var(--border); padding: 14px 40px 14px 15px;
+            border-radius: 12px; color: white; outline: none; box-sizing: border-box; font-size: 1rem;
+        }
+        .pujcovna-search-wrap input#pujcovna-search:focus { border-color: var(--accent); }
+        .pujcovna-search-clear {
+            position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: none; border: none;
+            color: #94a3b8; cursor: pointer; font-size: 1.1rem; padding: 4px 8px; display: none;
+        }
+        .pujcovna-search-wrap.has-value .pujcovna-search-clear { display: block; }
+        .pujcovna-search-count { color: #64748b; font-size: 0.8rem; margin: -8px 0 16px 4px; }
+
         .form-box { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 25px; }
         .form-box label { display: block; font-size: 0.85rem; color: #94a3b8; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
         .form-box input[type=text] { width: 100%; background: #0f172a; border: 1px solid var(--border); padding: 13px; border-radius: 8px; color: white; outline: none; box-sizing: border-box; font-size: 1rem; margin-bottom: 18px; }
@@ -431,6 +444,19 @@
         return String(iso || '');
     }
 
+    // Stejné jako formatDatumCZ, ale pokud je v ISO řetězci uložen i čas (T HH:MM), zobrazí i ten
+    function formatDatumCasCZ(iso) {
+        const m = String(iso || '').match(/^(\d{4})-(\d{1,2})-(\d{1,2})(?:[T ](\d{1,2}):(\d{2}))?/);
+        if (m) {
+            let vysledek = `${parseInt(m[3],10)}.${parseInt(m[2],10)}.${m[1]}`;
+            if (m[4] !== undefined) vysledek += ` ${String(m[4]).padStart(2,'0')}:${m[5]}`;
+            return vysledek;
+        }
+        const d = new Date(iso);
+        if (!isNaN(d.getTime())) return `${d.getDate()}.${d.getMonth()+1}.${d.getFullYear()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+        return String(iso || '');
+    }
+
     // --- LOGIKA PRO PŮJČOVNU NÁŘADÍ ---
 
     async function nactiZapujckyZUloziste() {
@@ -609,7 +635,7 @@
         const dnes = new Date();
         const vraceni = new Date(dnes);
         vraceni.setDate(vraceni.getDate() + 7);
-        const isoDnes = `${dnes.getFullYear()}-${String(dnes.getMonth()+1).padStart(2,'0')}-${String(dnes.getDate()).padStart(2,'0')}`;
+        const isoDnes = `${dnes.getFullYear()}-${String(dnes.getMonth()+1).padStart(2,'0')}-${String(dnes.getDate()).padStart(2,'0')}T${String(dnes.getHours()).padStart(2,'0')}:${String(dnes.getMinutes()).padStart(2,'0')}`;
         const isoVraceni = `${vraceni.getFullYear()}-${String(vraceni.getMonth()+1).padStart(2,'0')}-${String(vraceni.getDate()).padStart(2,'0')}`;
 
         try {
@@ -627,6 +653,9 @@
     }
 
     // --- Zapůjčeno ---
+    let posledniNacteneZapujcky = []; // uchováno kvůli filtrování bez nutnosti znovu-fetche
+    let posledniHledaniZapujcky = '';
+
     async function zobrazZapujceno() {
         const wrap = document.getElementById('pujcovna-tab-content');
         wrap.innerHTML = `<div class="status-msg">Načítám zápůjčky...</div>`;
@@ -638,17 +667,71 @@
             return;
         }
 
-        const zapujcky = zapujckyRaw.slice().reverse();
+        posledniNacteneZapujcky = zapujckyRaw.slice().reverse();
+        posledniHledaniZapujcky = '';
 
+        wrap.innerHTML = `
+            <div class="pujcovna-search-wrap" id="pujcovna-search-wrap">
+                <input type="text" id="pujcovna-search" placeholder="🔍 Hledat (kód, název nástroje, délka, komu...)"
+                    oninput="filtrovatZapujcky(this.value)">
+                <button type="button" class="pujcovna-search-clear" onclick="vymazatHledaniZapujcky()">✕</button>
+            </div>
+            <div id="pujcovna-search-count" class="pujcovna-search-count"></div>
+            <div id="zapujcka-list-container"></div>`;
+
+        vykresliZapujckaList(posledniNacteneZapujcky, '');
+    }
+
+    function zapujckaOdpovidaHledani(z, q) {
+        if (!q) return true;
+        const casti = [z.komu, formatDatumCasCZ(z.datumOd), formatDatumCZ(z.datumDo)];
+        (z.nastroje || []).forEach(cislo => {
+            casti.push(cislo);
+            const info = globalNastrojeDB[String(cislo).toLowerCase()];
+            if (info) { casti.push(info.nazev); casti.push(info.delka); }
+        });
+        return casti.some(c => String(c || '').toLowerCase().includes(q));
+    }
+
+    function filtrovatZapujcky(hodnota) {
+        posledniHledaniZapujcky = hodnota;
+        const wrapEl = document.getElementById('pujcovna-search-wrap');
+        if (wrapEl) wrapEl.classList.toggle('has-value', hodnota.trim().length > 0);
+        const q = hodnota.trim().toLowerCase();
+        const filtrovane = posledniNacteneZapujcky.filter(z => zapujckaOdpovidaHledani(z, q));
+        vykresliZapujckaList(filtrovane, q);
+    }
+
+    function vymazatHledaniZapujcky() {
+        const input = document.getElementById('pujcovna-search');
+        if (input) { input.value = ''; input.focus(); }
+        filtrovatZapujcky('');
+    }
+
+    function vykresliZapujckaList(zapujcky, q) {
+        const listEl = document.getElementById('zapujcka-list-container');
+        const countEl = document.getElementById('pujcovna-search-count');
+        if (!listEl) return;
+
+        if (countEl) {
+            countEl.textContent = q
+                ? `Nalezeno: ${zapujcky.length} z ${posledniNacteneZapujcky.length} zápůjček`
+                : '';
+        }
+
+        if (posledniNacteneZapujcky.length === 0) {
+            listEl.innerHTML = `<div class="status-msg">Momentálně nejsou evidovány žádné zápůjčky.</div>`;
+            return;
+        }
         if (zapujcky.length === 0) {
-            wrap.innerHTML = `<div class="status-msg">Momentálně nejsou evidovány žádné zápůjčky.</div>`;
+            listEl.innerHTML = `<div class="status-msg">Žádná zápůjčka neodpovídá hledání "${q}".</div>`;
             return;
         }
 
         const dnes = new Date();
         dnes.setHours(0, 0, 0, 0);
 
-        wrap.innerHTML = zapujcky.map(z => {
+        listEl.innerHTML = zapujcky.map(z => {
             const datumDoObj = new Date(z.datumDo);
             const poTerminu = !isNaN(datumDoObj.getTime()) && datumDoObj < dnes;
             const nastrojeHtml = z.nastroje.map(cislo => {
@@ -667,7 +750,7 @@
                         <div>
                             <div class="zapujcka-komu">👤 ${z.komu}</div>
                             <div class="zapujcka-datumy">
-                                <div>Datum zapůjčení: ${formatDatumCZ(z.datumOd)}</div>
+                                <div>Datum zapůjčení: ${formatDatumCasCZ(z.datumOd)}</div>
                                 <div>Datum vrácení: <span class="${poTerminu ? 'po-terminu' : ''}">${formatDatumCZ(z.datumDo)}${poTerminu ? ' (po termínu)' : ''}</span></div>
                             </div>
                         </div>
