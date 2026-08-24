@@ -754,9 +754,6 @@
                 <tr>
                     <td>${(z.komu || '').replace(/</g, '&lt;')}</td>
                     <td>${nastrojeText}</td>
-                    <td>${formatDatumCasCZ(z.datumOd)}</td>
-                    <td>${formatDatumCZ(z.datumDo)}</td>
-                    <td class="chk-col"><span class="chk-box"></span> vráceno</td>
                 </tr>`;
         }).join('');
 
@@ -772,8 +769,6 @@
     table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
     th, td { border: 1px solid #999; padding: 6px 8px; text-align: left; vertical-align: top; }
     th { background: #eee; }
-    .chk-col { white-space: nowrap; width: 110px; }
-    .chk-box { display: inline-block; width: 14px; height: 14px; border: 1px solid #333; margin-right: 6px; vertical-align: middle; }
     @media print {
         body { margin: 10mm; }
         button { display: none; }
@@ -791,9 +786,6 @@
             <tr>
                 <th>Komu</th>
                 <th>Nástroje</th>
-                <th>Datum zapůjčení</th>
-                <th>Termín vrácení</th>
-                <th>Kontrola</th>
             </tr>
         </thead>
         <tbody>${radky}</tbody>
