@@ -148,6 +148,13 @@
         .pujcovna-search-wrap.has-value .pujcovna-search-clear { display: block; }
         .pujcovna-search-count { color: #64748b; font-size: 0.8rem; margin: -8px 0 16px 4px; }
 
+        .pujcovna-print-row { display: flex; justify-content: flex-end; margin: -8px 0 16px 0; }
+        .pujcovna-print-btn {
+            background: none; border: 1px solid var(--border); color: #cbd5e1; padding: 8px 14px;
+            border-radius: 8px; font-size: 0.85rem; cursor: pointer; display: flex; align-items: center; gap: 6px;
+        }
+        .pujcovna-print-btn:hover { border-color: var(--error); color: var(--error); }
+
         .form-box { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 25px; }
         .form-box label { display: block; font-size: 0.85rem; color: #94a3b8; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
         .form-box input[type=text] { width: 100%; background: #0f172a; border: 1px solid var(--border); padding: 13px; border-radius: 8px; color: white; outline: none; box-sizing: border-box; font-size: 1rem; margin-bottom: 18px; }
@@ -677,6 +684,9 @@
                 <button type="button" class="pujcovna-search-clear" onclick="vymazatHledaniZapujcky()">✕</button>
             </div>
             <div id="pujcovna-search-count" class="pujcovna-search-count"></div>
+            <div class="pujcovna-print-row">
+                <button type="button" class="pujcovna-print-btn" onclick="tisknoutPoTerminu()">🖨️ Tisk nástrojů po termínu</button>
+            </div>
             <div id="zapujcka-list-container"></div>`;
 
         vykresliZapujckaList(posledniNacteneZapujcky, '');
@@ -706,6 +716,102 @@
         const input = document.getElementById('pujcovna-search');
         if (input) { input.value = ''; input.focus(); }
         filtrovatZapujcky('');
+    }
+
+    function jeZapujckaPoTerminu(z) {
+        const dnes = new Date();
+        dnes.setHours(0, 0, 0, 0);
+        const datumDoObj = new Date(z.datumDo);
+        return !isNaN(datumDoObj.getTime()) && datumDoObj < dnes;
+    }
+
+    function tisknoutPoTerminu() {
+        const poTerminuSeznam = posledniNacteneZapujcky
+            .filter(jeZapujckaPoTerminu)
+            .sort((a, b) => new Date(a.datumDo) - new Date(b.datumDo));
+
+        if (poTerminuSeznam.length === 0) {
+            alert('Aktuálně nejsou žádné zápůjčky po termínu vrácení. 👍');
+            return;
+        }
+
+        const vytisknutoText = new Date().toLocaleString('cs-CZ', {
+            day: 'numeric', month: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit'
+        });
+
+        const radky = poTerminuSeznam.map(z => {
+            const nastrojeText = (z.nastroje || []).map(cislo => {
+                const info = globalNastrojeDB[String(cislo).toLowerCase()];
+                let popis = String(cislo);
+                if (info) {
+                    popis += ` – ${info.nazev}`;
+                    if (info.delka) popis += ` (${info.delka} mm)`;
+                }
+                return popis;
+            }).join('<br>');
+
+            return `
+                <tr>
+                    <td>${(z.komu || '').replace(/</g, '&lt;')}</td>
+                    <td>${nastrojeText}</td>
+                    <td>${formatDatumCasCZ(z.datumOd)}</td>
+                    <td>${formatDatumCZ(z.datumDo)}</td>
+                    <td class="chk-col"><span class="chk-box"></span> vráceno</td>
+                </tr>`;
+        }).join('');
+
+        const html = `<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="UTF-8">
+<title>Nástroje po termínu vrácení</title>
+<style>
+    body { font-family: Arial, Helvetica, sans-serif; color: #111; margin: 24px; }
+    h1 { font-size: 1.3rem; margin: 0 0 2px 0; }
+    .podtitul { color: #555; font-size: 0.85rem; margin-bottom: 18px; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+    th, td { border: 1px solid #999; padding: 6px 8px; text-align: left; vertical-align: top; }
+    th { background: #eee; }
+    .chk-col { white-space: nowrap; width: 110px; }
+    .chk-box { display: inline-block; width: 14px; height: 14px; border: 1px solid #333; margin-right: 6px; vertical-align: middle; }
+    @media print {
+        body { margin: 10mm; }
+        button { display: none; }
+    }
+    .zavrit-btn {
+        margin-top: 20px; padding: 8px 16px; font-size: 0.9rem; cursor: pointer;
+    }
+</style>
+</head>
+<body>
+    <h1>Zapůjčené nástroje po termínu vrácení</h1>
+    <div class="podtitul">Vytištěno: ${vytisknutoText} &nbsp;|&nbsp; Počet zápůjček po termínu: ${poTerminuSeznam.length}</div>
+    <table>
+        <thead>
+            <tr>
+                <th>Komu</th>
+                <th>Nástroje</th>
+                <th>Datum zapůjčení</th>
+                <th>Termín vrácení</th>
+                <th>Kontrola</th>
+            </tr>
+        </thead>
+        <tbody>${radky}</tbody>
+    </table>
+    <button class="zavrit-btn" onclick="window.print()">🖨️ Tisknout</button>
+</body>
+</html>`;
+
+        const okno = window.open('', '_blank');
+        if (!okno) {
+            alert('Prohlížeč zablokoval otevření okna pro tisk. Povolte prosím vyskakovací okna pro tuto stránku a zkuste to znovu.');
+            return;
+        }
+        okno.document.open();
+        okno.document.write(html);
+        okno.document.close();
+        okno.focus();
+        setTimeout(() => { okno.print(); }, 350);
     }
 
     function vykresliZapujckaList(zapujcky, q) {
