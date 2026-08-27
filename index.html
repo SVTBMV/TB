@@ -28,6 +28,8 @@
         }
         .stredisko-btn:hover { border-color: var(--accent); background: #2d3a6d; transform: translateY(-2px); }
         .stredisko-btn.active { border-color: var(--accent); background: var(--accent); color: #000; }
+        .stredisko-btn-komplet { border-style: dashed; font-weight: 700; }
+        .stredisko-btn-komplet.active { border-style: solid; }
 
         #main-content, #pressure-content, #machines-content { display: none; }
         
@@ -226,6 +228,7 @@
     <div id="main-content">
         <div class="back-to-hub" onclick="switchView('hub')">← Zpět do menu</div>
         <div class="strediska-grid">
+            <div class="stredisko-btn stredisko-btn-komplet" id="btn-Komplet" onclick="vybratStredisko('Komplet')">📦 Komplet (vše)</div>
             <div class="stredisko-btn" id="btn-Libřice" onclick="vybratStredisko('Libřice')">Libřice</div>
             <div class="stredisko-btn" id="btn-Hlízov" onclick="vybratStredisko('Hlízov')">Hlízov</div>
             <div class="stredisko-btn" id="btn-Divec" onclick="vybratStredisko('Divec')">Divec</div>
@@ -1199,40 +1202,45 @@
     }
 
     // --- PŮVODNÍ LOGIKA PRO SKLAD NÁSTROJŮ ---
+    function zpracovatTsvRadky(text, inventory) {
+        const lines = text.split(/\r?\n/).filter(l => l.trim() !== "");
+        const rows = lines.slice(1);
+        rows.forEach(row => {
+            const cols = row.split('\t');
+            if (cols.length < 3) return;
+            const name = cols[0].trim();
+            const lengthValue = parseFloat(cols[1].replace(',', '.'));
+            const category = cols[2] ? cols[2].trim() : "Nezařazeno";
+            if (!name || isNaN(lengthValue)) return;
+            if (!inventory[category]) inventory[category] = {};
+            if (!inventory[category][name]) inventory[category][name] = { total: 0, segments: {} };
+            inventory[category][name].total += lengthValue;
+            inventory[category][name].segments[lengthValue] = (inventory[category][name].segments[lengthValue] || 0) + 1;
+        });
+    }
+
     async function vybratStredisko(jmenoStrediska) {
-        const tsvUrl = STREDISKA_URLS[jmenoStrediska];
-        if (!tsvUrl) { alert(`Středisko ${jmenoStrediska} nemá přiřazený odkaz.`); return; }
+        const jeKomplet = jmenoStrediska === 'Komplet';
+        const urls = jeKomplet ? Object.values(STREDISKA_URLS) : [STREDISKA_URLS[jmenoStrediska]];
+
+        if (!urls.length || !urls[0]) { alert(`Středisko ${jmenoStrediska} nemá přiřazený odkaz.`); return; }
 
         document.querySelectorAll('.stredisko-btn').forEach(btn => btn.classList.remove('active'));
-        document.getElementById(`btn-${jmenoStrediska}`).classList.add('active');
+        const btnEl = document.getElementById(`btn-${jmenoStrediska}`);
+        if (btnEl) btnEl.classList.add('active');
 
         document.getElementById('search').value = '';
-        document.getElementById('app').innerHTML = `<div class="status-msg">Načítám data pro středisko ${jmenoStrediska}...</div>`;
+        document.getElementById('app').innerHTML = `<div class="status-msg">Načítám data pro ${jeKomplet ? 'všechna střediska' : `středisko ${jmenoStrediska}`}...</div>`;
 
         try {
-            const response = await fetch(tsvUrl);
-            const text = await response.text();
-            const lines = text.split(/\r?\n/).filter(l => l.trim() !== "");
-            const rows = lines.slice(1);
+            const texty = await Promise.all(urls.map(url => fetch(url).then(r => r.text())));
             const inventory = {};
-
-            rows.forEach(row => {
-                const cols = row.split('\t');
-                if (cols.length < 3) return;
-                const name = cols[0].trim();
-                const lengthValue = parseFloat(cols[1].replace(',', '.'));
-                const category = cols[2] ? cols[2].trim() : "Nezařazeno";
-                if (!name || isNaN(lengthValue)) return;
-                if (!inventory[category]) inventory[category] = {};
-                if (!inventory[category][name]) inventory[category][name] = { total: 0, segments: {} };
-                inventory[category][name].total += lengthValue;
-                inventory[category][name].segments[lengthValue] = (inventory[category][name].segments[lengthValue] || 0) + 1;
-            });
+            texty.forEach(text => zpracovatTsvRadky(text, inventory));
 
             globalData = inventory;
             render(inventory);
         } catch (e) {
-            document.getElementById('app').innerHTML = `<div class="msg red" style="display:block">Chyba při načítání dat pro středisko "${jmenoStrediska}".</div>`;
+            document.getElementById('app').innerHTML = `<div class="msg red" style="display:block">Chyba při načítání dat${jeKomplet ? ' pro komplet ze všech středisek' : ` pro středisko "${jmenoStrediska}"`}.</div>`;
         }
     }
 
