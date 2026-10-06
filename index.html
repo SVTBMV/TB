@@ -187,20 +187,37 @@
         .zapujcka-karta.aktivni { border-left-color: var(--success); }
         .zapujcka-karta.po-terminu-karta { border-left-color: var(--error); background: rgba(239, 68, 68, 0.06); }
         .zapujcka-hlavicka { display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 10px; margin-bottom: 14px; }
+        .zapujcka-hlavicka-leva { display: flex; align-items: flex-start; gap: 10px; }
+        .zapujcka-select-checkbox { width: 20px; height: 20px; margin-top: 3px; accent-color: var(--accent); cursor: pointer; flex-shrink: 0; }
         .zapujcka-komu { font-size: 1.15rem; font-weight: 800; color: #fff; }
         .zapujcka-datumy { font-size: 0.85rem; color: #94a3b8; margin-top: 6px; display: flex; flex-direction: column; gap: 3px; }
         .zapujcka-datumy .po-terminu { color: var(--error); font-weight: bold; }
         .zapujcka-nastroje-list { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
         .zapujcka-nastroj-item { display: flex; justify-content: space-between; background: rgba(15, 23, 42, 0.5); border-radius: 8px; padding: 10px 14px; font-size: 0.9rem; }
+        .zapujcka-nastroj-item-vyber { align-items: center; gap: 10px; cursor: pointer; }
+        .zapujcka-nastroj-item-vyber input[type="checkbox"] { width: 18px; height: 18px; accent-color: var(--accent); cursor: pointer; flex-shrink: 0; }
         .zapujcka-nastroj-cislo { color: var(--accent); font-weight: bold; }
         .zapujcka-nastroj-info { color: #cbd5e1; }
         .zapujcka-nastroj-delka { color: #64748b; }
         .vratit-btn { background: none; border: 1px solid var(--error); color: var(--error); padding: 9px 18px; border-radius: 8px; cursor: pointer; font-weight: bold; }
         .vratit-btn:hover { background: rgba(239, 68, 68, 0.15); }
-        .vratit-potvrzeni { display: flex; align-items: center; gap: 10px; background: rgba(239, 68, 68, 0.1); border: 1px solid var(--error); padding: 10px 14px; border-radius: 8px; }
+        .vratit-castecne-btn { background: none; border: 1px solid var(--border); color: #cbd5e1; padding: 9px 18px; border-radius: 8px; cursor: pointer; font-weight: bold; margin-left: 8px; }
+        .vratit-castecne-btn:hover { border-color: var(--accent); color: var(--accent); }
+        .vratit-potvrzeni { display: flex; align-items: center; gap: 10px; background: rgba(239, 68, 68, 0.1); border: 1px solid var(--error); padding: 10px 14px; border-radius: 8px; flex-wrap: wrap; }
         .vratit-potvrzeni span { font-size: 0.9rem; color: #f87171; font-weight: 600; }
         .vratit-ano { background: var(--error); color: #fff; border: none; padding: 7px 16px; border-radius: 6px; cursor: pointer; font-weight: bold; }
         .vratit-ne { background: none; border: 1px solid var(--border); color: #cbd5e1; padding: 7px 16px; border-radius: 6px; cursor: pointer; }
+
+        .pujcovna-bulk-row {
+            display: flex; align-items: center; justify-content: space-between; gap: 12px;
+            background: var(--card); border: 1px solid var(--border); border-radius: 10px;
+            padding: 10px 16px; margin-bottom: 16px; font-size: 0.85rem; color: #cbd5e1;
+        }
+        .pujcovna-bulk-btn {
+            background: var(--success); border: none; color: #052e16; font-weight: 800;
+            padding: 9px 16px; border-radius: 8px; cursor: pointer;
+        }
+        .pujcovna-bulk-btn:disabled { background: #334155; color: #64748b; cursor: not-allowed; }
 
         /* Skener Data Matrix */
         .scanner-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 1000; align-items: center; justify-content: center; flex-direction: column; gap: 15px; padding: 20px; box-sizing: border-box; }
@@ -517,6 +534,14 @@
         });
     }
 
+    // Částečné vrácení - nahradí seznam nástrojů u existující zápůjčky (komu/datumy zůstávají)
+    async function aktualizovatZapujckuVzdalene(id, noveNastroje) {
+        await fetch(PUJCOVNA_API_URL, {
+            method: 'POST',
+            body: JSON.stringify({ action: 'update', id, nastroje: noveNastroje })
+        });
+    }
+
     async function nacistNastrojeDB() {
         if (Object.keys(globalNastrojeDB).length > 0) return;
         try {
@@ -689,6 +714,7 @@
     // --- Zapůjčeno ---
     let posledniNacteneZapujcky = []; // uchováno kvůli filtrování bez nutnosti znovu-fetche
     let posledniHledaniZapujcky = '';
+    let oznaceneZapujckyId = new Set(); // id zápůjček označených pro hromadné vrácení
 
     async function zobrazZapujceno() {
         const wrap = document.getElementById('pujcovna-tab-content');
@@ -703,6 +729,7 @@
 
         posledniNacteneZapujcky = zapujckyRaw.slice().reverse();
         posledniHledaniZapujcky = '';
+        oznaceneZapujckyId.clear();
 
         wrap.innerHTML = `
             <div id="pujcovna-stats-row"></div>
@@ -715,6 +742,11 @@
             <div class="pujcovna-print-row">
                 <button type="button" class="pujcovna-print-btn" onclick="tisknoutPoTerminu()">🖨️ Tisk nástrojů po termínu</button>
             </div>
+            ${pujcovnaReadOnly ? '' : `
+            <div class="pujcovna-bulk-row" id="pujcovna-bulk-row">
+                <span id="pujcovna-bulk-count">Označeno: 0</span>
+                <button type="button" class="pujcovna-bulk-btn" id="pujcovna-bulk-btn" onclick="vratitOznaceneZapujcky()" disabled>✅ Vrátit vše označené</button>
+            </div>`}
             <div id="zapujcka-list-container"></div>`;
 
         vykresliZapujckaList(posledniNacteneZapujcky, '');
@@ -878,33 +910,141 @@
         listEl.innerHTML = zapujcky.map(z => {
             const datumDoObj = new Date(z.datumDo);
             const poTerminu = !isNaN(datumDoObj.getTime()) && datumDoObj < dnes;
-            const nastrojeHtml = z.nastroje.map(cislo => {
-                const info = globalNastrojeDB[String(cislo).toLowerCase()];
-                return `
-                    <div class="zapujcka-nastroj-item">
-                        <span><span class="zapujcka-nastroj-cislo">${cislo}</span>
-                        ${info ? ` — <span class="zapujcka-nastroj-info">${info.nazev}</span>` : ' — <span class="zapujcka-nastroj-info" style="color:#64748b;">neznámý nástroj</span>'}</span>
-                        ${info && info.delka ? `<span class="zapujcka-nastroj-delka">${info.delka} mm</span>` : ''}
-                    </div>`;
-            }).join('');
+            const nastrojeHtml = renderNastrojeList(z, false);
 
             return `
                 <div class="zapujcka-karta ${poTerminu ? 'po-terminu-karta' : 'aktivni'}" id="karta-${z.id}">
                     <div class="zapujcka-hlavicka">
-                        <div>
-                            <div class="zapujcka-komu">👤 ${z.komu}</div>
-                            <div class="zapujcka-datumy">
-                                <div>Datum zapůjčení: ${formatDatumCasCZ(z.datumOd)}</div>
-                                <div>Datum vrácení: <span class="${poTerminu ? 'po-terminu' : ''}">${formatDatumCZ(z.datumDo)}${poTerminu ? ' (po termínu)' : ''}</span></div>
+                        <div class="zapujcka-hlavicka-leva">
+                            ${pujcovnaReadOnly ? '' : `<input type="checkbox" class="zapujcka-select-checkbox" title="Označit pro hromadné vrácení"
+                                ${oznaceneZapujckyId.has(String(z.id)) ? 'checked' : ''}
+                                onchange="prepnoutOznaceniZapujcky('${z.id}', this.checked)">`}
+                            <div>
+                                <div class="zapujcka-komu">👤 ${z.komu}</div>
+                                <div class="zapujcka-datumy">
+                                    <div>Datum zapůjčení: ${formatDatumCasCZ(z.datumOd)}</div>
+                                    <div>Datum vrácení: <span class="${poTerminu ? 'po-terminu' : ''}">${formatDatumCZ(z.datumDo)}${poTerminu ? ' (po termínu)' : ''}</span></div>
+                                </div>
                             </div>
                         </div>
                         <div id="akce-${z.id}">
-                            ${pujcovnaReadOnly ? '' : `<button class="vratit-btn" onclick="dotazNaVraceni('${z.id}')">Vrátit</button>`}
+                            ${pujcovnaReadOnly ? '' : `
+                                <button class="vratit-btn" onclick="dotazNaVraceni('${z.id}')">Vrátit</button>
+                                <button class="vratit-castecne-btn" onclick="zahajitCasteCneVraceni('${z.id}')">Vrátit částečně</button>`}
                         </div>
                     </div>
-                    <div class="zapujcka-nastroje-list">${nastrojeHtml}</div>
+                    <div class="zapujcka-nastroje-list" id="nastroje-${z.id}">${nastrojeHtml}</div>
                 </div>`;
         }).join('');
+    }
+
+    // rezimVyberu = true -> vykreslí checkboxy pro částečné vrácení jednotlivých nástrojů
+    function renderNastrojeList(z, rezimVyberu) {
+        return (z.nastroje || []).map(cislo => {
+            const info = globalNastrojeDB[String(cislo).toLowerCase()];
+            const popisHtml = `<span><span class="zapujcka-nastroj-cislo">${cislo}</span>
+                ${info ? ` — <span class="zapujcka-nastroj-info">${info.nazev}</span>` : ' — <span class="zapujcka-nastroj-info" style="color:#64748b;">neznámý nástroj</span>'}</span>
+                ${info && info.delka ? `<span class="zapujcka-nastroj-delka">${info.delka} mm</span>` : ''}`;
+
+            if (rezimVyberu) {
+                const cisloAttr = String(cislo).replace(/"/g, '&quot;');
+                return `<label class="zapujcka-nastroj-item zapujcka-nastroj-item-vyber">
+                        <input type="checkbox" class="zapujcka-nastroj-checkbox" data-cislo="${cisloAttr}">
+                        ${popisHtml}
+                    </label>`;
+            }
+            return `<div class="zapujcka-nastroj-item">${popisHtml}</div>`;
+        }).join('');
+    }
+
+    // --- Hromadné vrácení (checkbox na kartě + "Vrátit vše označené") ---
+    function prepnoutOznaceniZapujcky(id, zaskrtnuto) {
+        if (zaskrtnuto) oznaceneZapujckyId.add(String(id));
+        else oznaceneZapujckyId.delete(String(id));
+        aktualizovatBulkPanel();
+    }
+
+    function aktualizovatBulkPanel() {
+        const countEl = document.getElementById('pujcovna-bulk-count');
+        const btnEl = document.getElementById('pujcovna-bulk-btn');
+        if (countEl) countEl.textContent = `Označeno: ${oznaceneZapujckyId.size}`;
+        if (btnEl) btnEl.disabled = oznaceneZapujckyId.size === 0;
+    }
+
+    async function vratitOznaceneZapujcky() {
+        if (oznaceneZapujckyId.size === 0) return;
+        if (!confirm(`Opravdu vrátit ${oznaceneZapujckyId.size} označených zápůjček najednou?`)) return;
+
+        const btnEl = document.getElementById('pujcovna-bulk-btn');
+        if (btnEl) { btnEl.disabled = true; btnEl.textContent = 'Ukládám...'; }
+
+        const ids = Array.from(oznaceneZapujckyId);
+        await Promise.all(ids.map(id => smazatZapujckuVzdalene(id).catch(() => {})));
+
+        zobrazZapujceno(); // jediné obnovení seznamu na konci, ne po každé položce
+    }
+
+    // --- Částečné vrácení (jen vybrané nástroje z jedné zápůjčky) ---
+    function zahajitCasteCneVraceni(id) {
+        const z = posledniNacteneZapujcky.find(x => String(x.id) === String(id));
+        if (!z) return;
+
+        const nastrojeEl = document.getElementById('nastroje-' + id);
+        if (nastrojeEl) nastrojeEl.innerHTML = renderNastrojeList(z, true);
+
+        const akceEl = document.getElementById('akce-' + id);
+        if (akceEl) {
+            akceEl.innerHTML = `
+                <div class="vratit-potvrzeni">
+                    <span>Zaškrtněte vracené nástroje</span>
+                    <button class="vratit-ano" onclick="potvrditCasteCneVraceni('${id}')">Vrátit označené</button>
+                    <button class="vratit-ne" onclick="zrusitCasteCneVraceni('${id}')">Zrušit</button>
+                </div>`;
+        }
+    }
+
+    function zrusitCasteCneVraceni(id) {
+        const z = posledniNacteneZapujcky.find(x => String(x.id) === String(id));
+        if (!z) return;
+
+        const nastrojeEl = document.getElementById('nastroje-' + id);
+        if (nastrojeEl) nastrojeEl.innerHTML = renderNastrojeList(z, false);
+
+        const akceEl = document.getElementById('akce-' + id);
+        if (akceEl) {
+            akceEl.innerHTML = `
+                <button class="vratit-btn" onclick="dotazNaVraceni('${id}')">Vrátit</button>
+                <button class="vratit-castecne-btn" onclick="zahajitCasteCneVraceni('${id}')">Vrátit částečně</button>`;
+        }
+    }
+
+    async function potvrditCasteCneVraceni(id) {
+        const z = posledniNacteneZapujcky.find(x => String(x.id) === String(id));
+        if (!z) return;
+
+        const nastrojeEl = document.getElementById('nastroje-' + id);
+        if (!nastrojeEl) return;
+
+        const zaskrtnuteCisla = Array.from(nastrojeEl.querySelectorAll('.zapujcka-nastroj-checkbox:checked'))
+            .map(cb => cb.dataset.cislo);
+
+        if (zaskrtnuteCisla.length === 0) {
+            alert('Nezaškrtli jste žádný nástroj k vrácení.');
+            return;
+        }
+
+        const akceEl = document.getElementById('akce-' + id);
+        if (akceEl) akceEl.innerHTML = `<span style="color:#94a3b8; font-size:0.85rem;">Ukládám...</span>`;
+
+        const noveNastroje = z.nastroje.filter(cislo => !zaskrtnuteCisla.includes(String(cislo)));
+        try {
+            if (noveNastroje.length === 0) {
+                await smazatZapujckuVzdalene(id); // vráceno úplně vše -> smazat celou zápůjčku
+            } else {
+                await aktualizovatZapujckuVzdalene(id, noveNastroje);
+            }
+        } catch (e) { /* i tak zkusíme obnovit seznam */ }
+        zobrazZapujceno();
     }
 
     function dotazNaVraceni(id) {
@@ -921,7 +1061,9 @@
     function zrusitVraceni(id) {
         const akceEl = document.getElementById('akce-' + id);
         if (!akceEl) return;
-        akceEl.innerHTML = `<button class="vratit-btn" onclick="dotazNaVraceni('${id}')">Vrátit</button>`;
+        akceEl.innerHTML = `
+            <button class="vratit-btn" onclick="dotazNaVraceni('${id}')">Vrátit</button>
+            <button class="vratit-castecne-btn" onclick="zahajitCasteCneVraceni('${id}')">Vrátit částečně</button>`;
     }
 
     async function potvrditVraceni(id) {
