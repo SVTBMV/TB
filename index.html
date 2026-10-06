@@ -51,6 +51,19 @@
         .category-header::after { content: '▼'; font-size: 0.8rem; transition: transform 0.3s; color: var(--accent); }
         .category-section.open .category-header::after { transform: rotate(180deg); }
 
+        .souhrn-info { color: #94a3b8; font-size: 0.85rem; margin-bottom: 18px; }
+        .souhrn-header-left { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+        .souhrn-header-stats { display: flex; gap: 8px; flex-wrap: wrap; }
+        .souhrn-stat { font-size: 0.75rem; font-weight: 700; text-transform: none; letter-spacing: 0; color: #cbd5e1; background: rgba(15, 23, 42, 0.6); padding: 3px 9px; border-radius: 20px; }
+        .souhrn-stat-ok { color: #4ade80; }
+        .souhrn-stat-red { color: #f87171; }
+        .souhrn-nastroj-radek { display: flex; justify-content: space-between; align-items: center; gap: 10px; background: rgba(15, 23, 42, 0.5); border-radius: 8px; padding: 10px 14px; font-size: 0.9rem; margin-bottom: 6px; }
+        .souhrn-nastroj-radek:last-child { margin-bottom: 0; }
+        .souhrn-nastroj-nazev { color: #e2e8f0; }
+        .souhrn-nastroj-pocty { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+        .souhrn-badge { font-size: 0.8rem; font-weight: 800; color: var(--accent); background: rgba(56, 189, 248, 0.12); padding: 3px 10px; border-radius: 20px; }
+        .souhrn-badge-red { color: #f87171; background: rgba(239, 68, 68, 0.15); }
+
         .tool-card { 
             background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 15px; margin-bottom: 10px; 
             display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 10px; cursor: pointer;
@@ -582,14 +595,7 @@
 
     function vstoupitBezHesla() {
         pujcovnaReadOnly = true;
-        const app = document.getElementById('pujcovna-app');
-        app.innerHTML = `
-            <div class="vykony-header-row">
-                <div class="vykony-jmeno-title">👁 Zapůjčené nástroje</div>
-                <button class="logout-btn" onclick="pujcovnaReadOnly=false; zobrazPrihlaseniPujcovna();">Zpět na přihlášení</button>
-            </div>
-            <div id="pujcovna-tab-content"></div>`;
-        zobrazZapujceno();
+        zobrazPujcovnaTaby('zapujceno');
     }
 
     function overitHesloPujcovna() {
@@ -609,15 +615,28 @@
 
     function zobrazPujcovnaTaby(aktivni) {
         const app = document.getElementById('pujcovna-app');
-        app.innerHTML = `
-            <div class="pujcovna-tabs">
+        const tabyHtml = pujcovnaReadOnly
+            ? `
+                <div class="pujcovna-tab ${aktivni === 'zapujceno' ? 'active' : ''}" onclick="zobrazPujcovnaTaby('zapujceno')">📋 Zapůjčeno</div>
+                <div class="pujcovna-tab ${aktivni === 'souhrn' ? 'active' : ''}" onclick="zobrazPujcovnaTaby('souhrn')">📊 Souhrn</div>`
+            : `
                 <div class="pujcovna-tab ${aktivni === 'nova' ? 'active' : ''}" onclick="zobrazPujcovnaTaby('nova')">➕ Nová zápůjčka</div>
                 <div class="pujcovna-tab ${aktivni === 'zapujceno' ? 'active' : ''}" onclick="zobrazPujcovnaTaby('zapujceno')">📋 Zapůjčeno</div>
-            </div>
+                <div class="pujcovna-tab ${aktivni === 'souhrn' ? 'active' : ''}" onclick="zobrazPujcovnaTaby('souhrn')">📊 Souhrn</div>`;
+
+        app.innerHTML = `
+            ${pujcovnaReadOnly ? `
+            <div class="vykony-header-row">
+                <div class="vykony-jmeno-title">👁 Náhled bez hesla</div>
+                <button class="logout-btn" onclick="pujcovnaReadOnly=false; zobrazPrihlaseniPujcovna();">Zpět na přihlášení</button>
+            </div>` : ''}
+            <div class="pujcovna-tabs">${tabyHtml}</div>
             <div id="pujcovna-tab-content"></div>`;
 
-        if (aktivni === 'nova') {
+        if (aktivni === 'nova' && !pujcovnaReadOnly) {
             zobrazNovaZapujcka();
+        } else if (aktivni === 'souhrn') {
+            zobrazSouhrn();
         } else {
             zobrazZapujceno();
         }
@@ -801,6 +820,88 @@
         dnes.setHours(0, 0, 0, 0);
         const datumDoObj = new Date(z.datumDo);
         return !isNaN(datumDoObj.getTime()) && datumDoObj < dnes;
+    }
+
+    // --- Souhrn (seskupení dle "Komu" - středisko/firma/osoba, stejné nástroje sečtené pod sebou) ---
+    async function zobrazSouhrn() {
+        const wrap = document.getElementById('pujcovna-tab-content');
+        wrap.innerHTML = `<div class="status-msg">Načítám souhrn...</div>`;
+
+        const [zapujckyRaw] = await Promise.all([nactiZapujckyZUloziste(), nacistNastrojeDB()]);
+
+        if (zapujckyRaw === null) {
+            wrap.innerHTML = `<div class="msg red" style="display:block">Nepodařilo se načíst data ze sdíleného úložiště (Google Sheets). Zkontrolujte připojení nebo nastavení API URL.</div>`;
+            return;
+        }
+
+        if (zapujckyRaw.length === 0) {
+            wrap.innerHTML = `<div class="status-msg">Momentálně nejsou evidovány žádné zápůjčky.</div>`;
+            return;
+        }
+
+        // Seskupení podle "Komu"; u každé skupiny sečteme stejné názvy nástrojů pod sebe
+        const souhrn = {};
+        zapujckyRaw.forEach(z => {
+            const komu = (z.komu || '').trim() || '(neuvedeno)';
+            const poTerminu = jeZapujckaPoTerminu(z);
+
+            if (!souhrn[komu]) {
+                souhrn[komu] = { pocetZapujcek: 0, pocetCelkem: 0, pocetVTerminu: 0, pocetPoTerminu: 0, nastroje: {} };
+            }
+            const skupina = souhrn[komu];
+            skupina.pocetZapujcek++;
+
+            (z.nastroje || []).forEach(cislo => {
+                const info = globalNastrojeDB[String(cislo).toLowerCase()];
+                const nazev = info ? info.nazev : `Neznámý nástroj (${cislo})`;
+
+                if (!skupina.nastroje[nazev]) {
+                    skupina.nastroje[nazev] = { pocet: 0, vTerminu: 0, poTerminu: 0 };
+                }
+                skupina.nastroje[nazev].pocet++;
+                if (poTerminu) skupina.nastroje[nazev].poTerminu++;
+                else skupina.nastroje[nazev].vTerminu++;
+
+                skupina.pocetCelkem++;
+                if (poTerminu) skupina.pocetPoTerminu++;
+                else skupina.pocetVTerminu++;
+            });
+        });
+
+        const komuSeznam = Object.keys(souhrn).sort((a, b) => a.localeCompare(b, 'cs'));
+
+        wrap.innerHTML = `
+            <div class="souhrn-info">Přehled aktuálně zapůjčených nástrojů seskupený podle „Komu“ (firma / středisko / osoba). Stejné nástroje jsou sečtené pod sebou.</div>
+            ${komuSeznam.map(komu => {
+                const s = souhrn[komu];
+                const nazvyNastroju = Object.keys(s.nastroje).sort((a, b) => a.localeCompare(b, 'cs'));
+                const radkyHtml = nazvyNastroju.map(nazev => {
+                    const n = s.nastroje[nazev];
+                    return `
+                        <div class="souhrn-nastroj-radek">
+                            <span class="souhrn-nastroj-nazev">${nazev}</span>
+                            <span class="souhrn-nastroj-pocty">
+                                <span class="souhrn-badge">${n.pocet}×</span>
+                                ${n.poTerminu > 0 ? `<span class="souhrn-badge souhrn-badge-red">${n.poTerminu}× po termínu</span>` : ''}
+                            </span>
+                        </div>`;
+                }).join('');
+
+                return `
+                    <div class="category-section">
+                        <div class="category-header" onclick="toggleCategory(this.parentElement)">
+                            <div class="souhrn-header-left">
+                                <div class="category-title">👤 ${komu}</div>
+                                <div class="souhrn-header-stats">
+                                    <span class="souhrn-stat">${s.pocetCelkem} ks celkem</span>
+                                    <span class="souhrn-stat souhrn-stat-ok">${s.pocetVTerminu} v termínu</span>
+                                    ${s.pocetPoTerminu > 0 ? `<span class="souhrn-stat souhrn-stat-red">${s.pocetPoTerminu} po termínu</span>` : ''}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="category-content">${radkyHtml}</div>
+                    </div>`;
+            }).join('')}`;
     }
 
     function tisknoutPoTerminu() {
@@ -1524,7 +1625,7 @@
 
     function filter() {
         const q = document.getElementById('search').value.toLowerCase();
-        const categories = document.querySelectorAll('.category-section');
+        const categories = document.querySelectorAll('#app .category-section');
         categories.forEach(sec => {
             const cards = sec.querySelectorAll('.tool-card');
             let hasVisible = false;
