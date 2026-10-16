@@ -64,6 +64,18 @@
         .souhrn-badge { font-size: 0.8rem; font-weight: 800; color: var(--accent); background: rgba(56, 189, 248, 0.12); padding: 3px 10px; border-radius: 20px; }
         .souhrn-badge-red { color: #f87171; background: rgba(239, 68, 68, 0.15); }
 
+        .form-box select { width: 100%; background: #0f172a; border: 1px solid var(--border); padding: 13px; border-radius: 8px; color: white; outline: none; box-sizing: border-box; font-size: 1rem; margin-bottom: 18px; }
+        .form-box select:focus { border-color: var(--accent); }
+
+        .stat-toolbar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; }
+        .stat-toolbar label { color: #94a3b8; font-size: 0.85rem; font-weight: 600; }
+        .stat-toolbar select { background: var(--card); border: 1px solid var(--border); color: white; padding: 9px 12px; border-radius: 8px; font-size: 0.9rem; outline: none; }
+        .stat-banner { background: rgba(234, 179, 8, 0.12); border: 1px solid var(--warning); color: #fde047; border-radius: 10px; padding: 12px 14px; margin-bottom: 14px; font-size: 0.85rem; display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+        .stat-banner button { background: var(--warning); color: #000; border: none; border-radius: 8px; padding: 8px 14px; font-weight: 800; cursor: pointer; }
+        .stat-meta { color: #94a3b8; font-size: 0.75rem; margin-top: 3px; }
+        .stat-nastroj-info { display: flex; flex-direction: column; min-width: 0; }
+        .stat-top-rank { color: #64748b; font-weight: 800; margin-right: 8px; }
+
         .tool-card { 
             background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 15px; margin-bottom: 10px; 
             display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 10px; cursor: pointer;
@@ -533,6 +545,26 @@
         }
     }
 
+    // Historie zápůjček (trvalý log, nemaže se při vrácení). null = chyba / stará verze skriptu.
+    async function nactiHistoriiZUloziste() {
+        try {
+            const response = await fetch(PUJCOVNA_API_URL + '?historie=1');
+            const data = await response.json();
+            if (data && !Array.isArray(data) && Array.isArray(data.historie)) return data.historie;
+            return null;
+        } catch (e) {
+            return null;
+        }
+    }
+
+    // Jednorázové doplnění právě zapůjčených zápůjček, které vznikly před zavedením historie
+    async function doplnitDoHistorieVzdalene(polozky) {
+        await fetch(PUJCOVNA_API_URL, {
+            method: 'POST',
+            body: JSON.stringify({ action: 'backfill', zapujcky: polozky })
+        });
+    }
+
     async function pridatZapujckuVzdalene(zapujcka) {
         await fetch(PUJCOVNA_API_URL, {
             method: 'POST',
@@ -540,10 +572,17 @@
         });
     }
 
+    // Aktuální čas v místním (prohlížečovém) čase ve formátu RRRR-MM-DDTHH:MM
+    function nynejsiIsoCas() {
+        const d = new Date();
+        const p2 = n => String(n).padStart(2, '0');
+        return `${d.getFullYear()}-${p2(d.getMonth()+1)}-${p2(d.getDate())}T${p2(d.getHours())}:${p2(d.getMinutes())}`;
+    }
+
     async function smazatZapujckuVzdalene(id) {
         await fetch(PUJCOVNA_API_URL, {
             method: 'POST',
-            body: JSON.stringify({ action: 'delete', id })
+            body: JSON.stringify({ action: 'delete', id, casVraceni: nynejsiIsoCas() })
         });
     }
 
@@ -551,7 +590,7 @@
     async function aktualizovatZapujckuVzdalene(id, noveNastroje) {
         await fetch(PUJCOVNA_API_URL, {
             method: 'POST',
-            body: JSON.stringify({ action: 'update', id, nastroje: noveNastroje })
+            body: JSON.stringify({ action: 'update', id, nastroje: noveNastroje, casVraceni: nynejsiIsoCas() })
         });
     }
 
@@ -618,11 +657,13 @@
         const tabyHtml = pujcovnaReadOnly
             ? `
                 <div class="pujcovna-tab ${aktivni === 'zapujceno' ? 'active' : ''}" onclick="zobrazPujcovnaTaby('zapujceno')">📋 Zapůjčeno</div>
-                <div class="pujcovna-tab ${aktivni === 'souhrn' ? 'active' : ''}" onclick="zobrazPujcovnaTaby('souhrn')">📊 Souhrn</div>`
+                <div class="pujcovna-tab ${aktivni === 'souhrn' ? 'active' : ''}" onclick="zobrazPujcovnaTaby('souhrn')">📊 Souhrn</div>
+                <div class="pujcovna-tab ${aktivni === 'statistika' ? 'active' : ''}" onclick="zobrazPujcovnaTaby('statistika')">📈 Statistika</div>`
             : `
                 <div class="pujcovna-tab ${aktivni === 'nova' ? 'active' : ''}" onclick="zobrazPujcovnaTaby('nova')">➕ Nová zápůjčka</div>
                 <div class="pujcovna-tab ${aktivni === 'zapujceno' ? 'active' : ''}" onclick="zobrazPujcovnaTaby('zapujceno')">📋 Zapůjčeno</div>
-                <div class="pujcovna-tab ${aktivni === 'souhrn' ? 'active' : ''}" onclick="zobrazPujcovnaTaby('souhrn')">📊 Souhrn</div>`;
+                <div class="pujcovna-tab ${aktivni === 'souhrn' ? 'active' : ''}" onclick="zobrazPujcovnaTaby('souhrn')">📊 Souhrn</div>
+                <div class="pujcovna-tab ${aktivni === 'statistika' ? 'active' : ''}" onclick="zobrazPujcovnaTaby('statistika')">📈 Statistika</div>`;
 
         app.innerHTML = `
             ${pujcovnaReadOnly ? `
@@ -637,17 +678,61 @@
             zobrazNovaZapujcka();
         } else if (aktivni === 'souhrn') {
             zobrazSouhrn();
+        } else if (aktivni === 'statistika') {
+            zobrazStatistika();
         } else {
             zobrazZapujceno();
         }
     }
 
     // --- Nová zápůjčka ---
+    const KOMU_STREDISKA = ['DivecRP', 'Letohrad', 'Hlízov', 'Nysa'];
+    const KOMU_OSTATNI = 'Ostatní';
+    let novaKomuVolba = '';        // vybraná položka v rozbalovátku (středisko / Ostatní)
+    let novaKomuOstatni = '';      // ručně zapsané jméno při volbě "Ostatní"
+    let komuOstatniSeznam = [];    // dříve použitá jména pro našeptávání
+
+    function escHtml(v) {
+        return String(v === undefined || v === null ? '' : v)
+            .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+
     function zobrazNovaZapujcka() {
         novaZapujckaRadky = [];
         novaZapujckaCounter = 0;
+        novaKomuVolba = '';
+        novaKomuOstatni = '';
         pridatRadekNastroj();
         vykresliFormularZapujcky();
+        nactiKomuOstatniSeznam();
+    }
+
+    // Natáhne dříve zapsaná jména mimo střediska (z aktivních zápůjček i z historie) pro našeptávač
+    async function nactiKomuOstatniSeznam() {
+        const [zapujcky, historie] = await Promise.all([nactiZapujckyZUloziste(), nactiHistoriiZUloziste()]);
+        const videno = new Map();
+        const pridej = jmeno => {
+            const j = ocistitBunku(jmeno);
+            if (!j) return;
+            const klic = j.toLowerCase();
+            if (KOMU_STREDISKA.some(s => s.toLowerCase() === klic)) return;
+            if (!videno.has(klic)) videno.set(klic, j);
+        };
+        (zapujcky || []).forEach(z => pridej(z.komu));
+        (historie || []).forEach(r => pridej(r.komu));
+        komuOstatniSeznam = Array.from(videno.values()).sort((a, b) => a.localeCompare(b, 'cs'));
+        const dl = document.getElementById('komu-ostatni-seznam');
+        if (dl) dl.innerHTML = komuOstatniSeznam.map(j => `<option value="${escHtml(j)}"></option>`).join('');
+    }
+
+    function zmenitKomuVolbu(hodnota) {
+        novaKomuVolba = hodnota;
+        const wrap = document.getElementById('komu-ostatni-wrap');
+        if (wrap) wrap.style.display = hodnota === KOMU_OSTATNI ? 'block' : 'none';
+        if (hodnota === KOMU_OSTATNI) {
+            const inp = document.getElementById('zapujcka-komu-ostatni');
+            if (inp) inp.focus();
+        }
     }
 
     function pridatRadekNastroj() {
@@ -671,7 +756,10 @@
         const wrap = document.getElementById('pujcovna-tab-content');
         if (!wrap) return;
 
-        const komuHodnota = document.getElementById('zapujcka-komu') ? document.getElementById('zapujcka-komu').value : '';
+        const selEl = document.getElementById('zapujcka-komu-volba');
+        if (selEl) novaKomuVolba = selEl.value;
+        const ostEl = document.getElementById('zapujcka-komu-ostatni');
+        if (ostEl) novaKomuOstatni = ostEl.value;
 
         let radkyHtml = novaZapujckaRadky.map(r => `
             <div class="nastroj-radek">
@@ -683,8 +771,17 @@
 
         wrap.innerHTML = `
             <div class="form-box">
-                <label for="zapujcka-komu">Komu:</label>
-                <input type="text" id="zapujcka-komu" placeholder="Firma, středisko, osoba..." value="${(komuHodnota || '').replace(/"/g, '&quot;')}">
+                <label for="zapujcka-komu-volba">Komu:</label>
+                <select id="zapujcka-komu-volba" onchange="zmenitKomuVolbu(this.value)">
+                    <option value="" ${novaKomuVolba === '' ? 'selected' : ''} disabled>— vyberte —</option>
+                    ${KOMU_STREDISKA.map(s => `<option value="${escHtml(s)}" ${novaKomuVolba === s ? 'selected' : ''}>${escHtml(s)}</option>`).join('')}
+                    <option value="${KOMU_OSTATNI}" ${novaKomuVolba === KOMU_OSTATNI ? 'selected' : ''}>${KOMU_OSTATNI}</option>
+                </select>
+                <div id="komu-ostatni-wrap" style="display:${novaKomuVolba === KOMU_OSTATNI ? 'block' : 'none'};">
+                    <input type="text" id="zapujcka-komu-ostatni" list="komu-ostatni-seznam" autocomplete="off"
+                        placeholder="Vyberte z dříve zapsaných, nebo napište nové jméno..." value="${escHtml(novaKomuOstatni)}">
+                    <datalist id="komu-ostatni-seznam">${komuOstatniSeznam.map(j => `<option value="${escHtml(j)}"></option>`).join('')}</datalist>
+                </div>
 
                 <label>Nástroje:</label>
                 <div id="nastroje-radky">${radkyHtml}</div>
@@ -696,12 +793,20 @@
     }
 
     async function ulozitZapujcku() {
-        const komu = ocistitBunku(document.getElementById('zapujcka-komu').value);
+        const volba = document.getElementById('zapujcka-komu-volba').value;
+        const ostatniInput = document.getElementById('zapujcka-komu-ostatni');
+        const komu = volba === KOMU_OSTATNI
+            ? ocistitBunku(ostatniInput ? ostatniInput.value : '')
+            : volba;
         const cisla = novaZapujckaRadky.map(r => ocistitBunku(r.hodnota)).filter(v => v !== '');
         const errorEl = document.getElementById('zapujcka-error');
 
+        if (!volba) {
+            errorEl.textContent = 'Vyberte prosím, komu se půjčuje.';
+            return;
+        }
         if (!komu) {
-            errorEl.textContent = 'Vyplňte prosím jméno v poli "Komu".';
+            errorEl.textContent = 'Napište prosím jméno do pole u volby "Ostatní".';
             return;
         }
         if (cisla.length === 0) {
@@ -709,6 +814,13 @@
             return;
         }
         errorEl.textContent = 'Ukládám...';
+
+        // Název a délka se uloží do historie jako "otisk" v době zápůjčky
+        await nacistNastrojeDB();
+        const nastrojeInfo = cisla.map(cislo => {
+            const info = globalNastrojeDB[String(cislo).toLowerCase()];
+            return { cislo, nazev: info ? info.nazev : '', delka: info ? info.delka : '' };
+        });
 
         const dnes = new Date();
         const vraceni = new Date(dnes);
@@ -722,7 +834,8 @@
                 komu,
                 datumOd: isoDnes,
                 datumDo: isoVraceni,
-                nastroje: cisla
+                nastroje: cisla,
+                nastrojeInfo
             });
             zobrazPujcovnaTaby('zapujceno');
         } catch (e) {
@@ -902,6 +1015,198 @@
                         <div class="category-content">${radkyHtml}</div>
                     </div>`;
             }).join('')}`;
+    }
+
+    // --- Statistika (historie zápůjček podle "Komu", nástroje sloučené podle názvu + délky) ---
+    let statistikaObdobi = 'vse';
+    let statistikaData = null; // { historie, zapujcky } - drží se kvůli přepínání období bez nového stahování
+
+    async function zobrazStatistika() {
+        const wrap = document.getElementById('pujcovna-tab-content');
+        wrap.innerHTML = `<div class="status-msg">Načítám historii...</div>`;
+
+        const [historie, zapujcky] = await Promise.all([nactiHistoriiZUloziste(), nactiZapujckyZUloziste(), nacistNastrojeDB()]);
+
+        if (historie === null) {
+            wrap.innerHTML = `<div class="msg red" style="display:block">Historii se nepodařilo načíst. Zkontrolujte připojení a že je v Apps Scriptu nasazená nová verze skriptu (s listem „Historie“).</div>`;
+            return;
+        }
+        statistikaData = { historie, zapujcky: zapujcky || [] };
+        vykresliStatistiku();
+    }
+
+    function zmenitObdobiStatistiky(hodnota) {
+        statistikaObdobi = hodnota;
+        vykresliStatistiku();
+    }
+
+    function popisNastroje(r) {
+        const info = globalNastrojeDB[String(r.cislo).toLowerCase()];
+        const nazev = ocistitBunku(r.nazev) || (info ? info.nazev : '') || `Neznámý nástroj (${r.cislo})`;
+        const delka = ocistitBunku(r.delka) || (info ? info.delka : '') || '';
+        return { nazev, delka };
+    }
+
+    function vykresliStatistiku() {
+        const wrap = document.getElementById('pujcovna-tab-content');
+        if (!wrap || !statistikaData) return;
+        const { historie, zapujcky } = statistikaData;
+
+        // Filtr období (podle data zapůjčení)
+        let hranice = null;
+        if (statistikaObdobi !== 'vse') {
+            hranice = new Date();
+            hranice.setMonth(hranice.getMonth() - parseInt(statistikaObdobi, 10));
+        }
+        const radky = historie.filter(r => {
+            if (!hranice) return true;
+            const d = new Date(r.datumOd);
+            return !isNaN(d.getTime()) && d >= hranice;
+        });
+
+        // Seskupení: komu (bez ohledu na velikost písmen) -> nástroj (název + délka)
+        const skupiny = new Map();
+        const celkem = new Map(); // napříč všemi: nástroj -> { pocet, podleKomu }
+        const nyni = new Date();
+
+        radky.forEach(r => {
+            const komuNazev = ocistitBunku(r.komu) || '(neuvedeno)';
+            const komuKlic = komuNazev.toLowerCase();
+            const { nazev, delka } = popisNastroje(r);
+            const klic = `${nazev.toLowerCase()}|${delka}`;
+
+            if (!skupiny.has(komuKlic)) skupiny.set(komuKlic, { komu: komuNazev, pocet: 0, nastroje: new Map() });
+            const sk = skupiny.get(komuKlic);
+            sk.pocet++;
+            if (!sk.nastroje.has(klic)) sk.nastroje.set(klic, { nazev, delka, pocet: 0, vracenych: 0, soucetDni: 0, aktualne: 0 });
+            const n = sk.nastroje.get(klic);
+            n.pocet++;
+
+            const od = new Date(r.datumOd);
+            const vr = r.datumVraceni ? new Date(r.datumVraceni) : null;
+            if (vr && !isNaN(vr.getTime()) && !isNaN(od.getTime())) {
+                n.vracenych++;
+                n.soucetDni += Math.max(0, (vr - od) / 86400000);
+            } else if (!r.datumVraceni) {
+                n.aktualne++;
+            }
+
+            if (!celkem.has(klic)) celkem.set(klic, { nazev, delka, pocet: 0, podleKomu: new Map() });
+            const c = celkem.get(klic);
+            c.pocet++;
+            c.podleKomu.set(sk.komu, (c.podleKomu.get(sk.komu) || 0) + 1);
+        });
+
+        const popisNastrojeText = n => `${escHtml(n.nazev)}${n.delka ? ` — ${escHtml(n.delka)} mm` : ''}`;
+        const dniText = n => {
+            if (!n.vracenych) return '';
+            const prumer = n.soucetDni / n.vracenych;
+            const zaokr = prumer < 1 ? '< 1' : String(Math.round(prumer * 10) / 10).replace('.', ',');
+            return `Ø ${zaokr} dní (z ${n.vracenych} vrácených)`;
+        };
+
+        // Banner pro doplnění zápůjček vzniklých před zavedením historie
+        const idVHistorii = new Set(historie.map(r => String(r.id)));
+        const chybejici = zapujcky.filter(z => !idVHistorii.has(String(z.id)));
+        const bannerHtml = (!pujcovnaReadOnly && chybejici.length > 0) ? `
+            <div class="stat-banner">
+                <span>${chybejici.length} právě zapůjčených zápůjček vzniklo před zavedením historie a v ní zatím nejsou.</span>
+                <button type="button" onclick="doplnitChybejiciDoHistorie()">Doplnit do historie</button>
+            </div>` : '';
+
+        const obdobiHtml = `
+            <div class="stat-toolbar">
+                <label for="stat-obdobi">Období:</label>
+                <select id="stat-obdobi" onchange="zmenitObdobiStatistiky(this.value)">
+                    <option value="vse" ${statistikaObdobi === 'vse' ? 'selected' : ''}>Celá historie</option>
+                    <option value="12" ${statistikaObdobi === '12' ? 'selected' : ''}>Posledních 12 měsíců</option>
+                    <option value="6" ${statistikaObdobi === '6' ? 'selected' : ''}>Posledních 6 měsíců</option>
+                    <option value="3" ${statistikaObdobi === '3' ? 'selected' : ''}>Poslední 3 měsíce</option>
+                </select>
+            </div>`;
+
+        if (radky.length === 0) {
+            wrap.innerHTML = `${bannerHtml}${obdobiHtml}<div class="status-msg">V tomto období zatím nejsou v historii žádné zápůjčky.${historie.length === 0 ? ' Historie se plní od nasazení nové verze.' : ''}</div>`;
+            return;
+        }
+
+        // Top nástroje napříč všemi
+        const top = Array.from(celkem.values()).sort((a, b) => b.pocet - a.pocet || a.nazev.localeCompare(b.nazev, 'cs')).slice(0, 15);
+        const topHtml = top.map((c, i) => {
+            const rozpis = Array.from(c.podleKomu.entries()).sort((a, b) => b[1] - a[1]).map(([k, p]) => `${escHtml(k)} ${p}×`).join(', ');
+            return `
+                <div class="souhrn-nastroj-radek">
+                    <div class="stat-nastroj-info">
+                        <span class="souhrn-nastroj-nazev"><span class="stat-top-rank">${i + 1}.</span>${popisNastrojeText(c)}</span>
+                        <span class="stat-meta">${rozpis}</span>
+                    </div>
+                    <span class="souhrn-nastroj-pocty"><span class="souhrn-badge">${c.pocet}×</span></span>
+                </div>`;
+        }).join('');
+
+        const skupinyHtml = Array.from(skupiny.values())
+            .sort((a, b) => b.pocet - a.pocet || a.komu.localeCompare(b.komu, 'cs'))
+            .map(sk => {
+                const nastroje = Array.from(sk.nastroje.values()).sort((a, b) => b.pocet - a.pocet || a.nazev.localeCompare(b.nazev, 'cs'));
+                const radkyHtml = nastroje.map(n => `
+                    <div class="souhrn-nastroj-radek">
+                        <div class="stat-nastroj-info">
+                            <span class="souhrn-nastroj-nazev">${popisNastrojeText(n)}</span>
+                            ${(dniText(n) || n.aktualne) ? `<span class="stat-meta">${[dniText(n), n.aktualne ? `právě zapůjčeno: ${n.aktualne}` : ''].filter(Boolean).join(' · ')}</span>` : ''}
+                        </div>
+                        <span class="souhrn-nastroj-pocty"><span class="souhrn-badge">${n.pocet}×</span></span>
+                    </div>`).join('');
+                return `
+                    <div class="category-section">
+                        <div class="category-header" onclick="toggleCategory(this.parentElement)">
+                            <div class="souhrn-header-left">
+                                <div class="category-title">📍 ${escHtml(sk.komu)}</div>
+                                <div class="souhrn-header-stats">
+                                    <span class="souhrn-stat">${sk.pocet}× zapůjčeno celkem</span>
+                                    <span class="souhrn-stat">${nastroje.length} ${nastroje.length === 1 ? 'druh' : (nastroje.length < 5 ? 'druhy' : 'druhů')}</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="category-content">${radkyHtml}</div>
+                    </div>`;
+            }).join('');
+
+        wrap.innerHTML = `
+            ${bannerHtml}
+            ${obdobiHtml}
+            <div class="souhrn-info">Kolikrát byl který nástroj (název + délka) zapůjčen. „10×“ znamená 10 zapůjčených kusů za zvolené období. Čísla nástrojů se zde nezobrazují.</div>
+            <div class="category-section open">
+                <div class="category-header" onclick="toggleCategory(this.parentElement)">
+                    <div class="souhrn-header-left">
+                        <div class="category-title">🏆 Nejčastěji půjčované (vše)</div>
+                        <div class="souhrn-header-stats"><span class="souhrn-stat">${radky.length}× celkem</span></div>
+                    </div>
+                </div>
+                <div class="category-content">${topHtml}</div>
+            </div>
+            ${skupinyHtml}`;
+    }
+
+    async function doplnitChybejiciDoHistorie() {
+        if (!statistikaData) return;
+        const idVHistorii = new Set(statistikaData.historie.map(r => String(r.id)));
+        const chybejici = statistikaData.zapujcky.filter(z => !idVHistorii.has(String(z.id)));
+        if (chybejici.length === 0) return;
+
+        const polozky = chybejici.map(z => ({
+            id: z.id,
+            komu: z.komu,
+            datumOd: z.datumOd,
+            nastrojeInfo: (z.nastroje || []).map(cislo => {
+                const info = globalNastrojeDB[String(cislo).toLowerCase()];
+                return { cislo, nazev: info ? info.nazev : '', delka: info ? info.delka : '' };
+            })
+        }));
+
+        const wrap = document.getElementById('pujcovna-tab-content');
+        if (wrap) wrap.innerHTML = `<div class="status-msg">Doplňuji do historie...</div>`;
+        try { await doplnitDoHistorieVzdalene(polozky); } catch (e) { /* načtení níže ukáže skutečný stav */ }
+        zobrazStatistika();
     }
 
     function tisknoutPoTerminu() {
