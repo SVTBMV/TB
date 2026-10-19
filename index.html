@@ -75,6 +75,22 @@
         .stat-meta { color: #94a3b8; font-size: 0.75rem; margin-top: 3px; }
         .stat-nastroj-info { display: flex; flex-direction: column; min-width: 0; }
         .stat-top-rank { color: #64748b; font-weight: 800; margin-right: 8px; }
+        .stat-merge-btn { background: none; border: 1px solid var(--border); color: #cbd5e1; padding: 9px 14px; border-radius: 8px; font-size: 0.85rem; font-weight: 700; cursor: pointer; }
+        .stat-merge-btn:hover, .stat-merge-btn.active { border-color: var(--accent); color: var(--accent); }
+        .stat-merge-panel { background: var(--card); border: 1px solid var(--accent); border-radius: 12px; padding: 16px; margin-bottom: 16px; }
+        .stat-merge-panel h4 { margin: 0 0 4px 0; color: var(--accent); font-size: 0.95rem; }
+        .stat-merge-help { color: #94a3b8; font-size: 0.8rem; margin-bottom: 12px; }
+        .stat-merge-list { display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px; max-height: 260px; overflow-y: auto; }
+        .stat-merge-item { display: flex; align-items: center; gap: 10px; background: rgba(15, 23, 42, 0.5); border-radius: 8px; padding: 9px 12px; font-size: 0.9rem; cursor: pointer; }
+        .stat-merge-item input { width: 18px; height: 18px; accent-color: var(--accent); flex-shrink: 0; }
+        .stat-merge-item span.pocet { margin-left: auto; color: #64748b; font-size: 0.8rem; }
+        .stat-merge-target { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 4px; }
+        .stat-merge-target input[type=text] { flex: 1; min-width: 180px; background: #0f172a; border: 1px solid var(--border); color: white; padding: 10px 12px; border-radius: 8px; font-size: 0.9rem; outline: none; }
+        .stat-merge-target button { background: var(--success); color: #052e16; border: none; border-radius: 8px; padding: 10px 16px; font-weight: 800; cursor: pointer; }
+        .stat-merge-err { color: #f87171; font-size: 0.8rem; min-height: 1em; margin-top: 6px; }
+        .stat-alias-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; font-size: 0.85rem; color: #cbd5e1; padding: 6px 0; border-top: 1px solid rgba(255,255,255,0.06); }
+        .stat-alias-row button { background: none; border: 1px solid var(--border); color: #cbd5e1; border-radius: 6px; padding: 4px 10px; cursor: pointer; font-size: 0.8rem; }
+        .stat-alias-row button:hover { border-color: var(--error); color: var(--error); }
 
         .tool-card { 
             background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 15px; margin-bottom: 10px; 
@@ -557,6 +573,32 @@
         }
     }
 
+    // Sloučená jména (alias -> cíl). null = chyba / stará verze skriptu.
+    async function nactiAliasyZUloziste() {
+        try {
+            const response = await fetch(PUJCOVNA_API_URL + '?aliasy=1');
+            const data = await response.json();
+            if (data && !Array.isArray(data) && Array.isArray(data.aliasy)) return data.aliasy;
+            return null;
+        } catch (e) {
+            return null;
+        }
+    }
+
+    async function ulozitAliasVzdalene(alias, cil) {
+        await fetch(PUJCOVNA_API_URL, {
+            method: 'POST',
+            body: JSON.stringify({ action: 'aliasSet', alias, cil })
+        });
+    }
+
+    async function smazatAliasVzdalene(alias) {
+        await fetch(PUJCOVNA_API_URL, {
+            method: 'POST',
+            body: JSON.stringify({ action: 'aliasDelete', alias })
+        });
+    }
+
     // Jednorázové doplnění právě zapůjčených zápůjček, které vznikly před zavedením historie
     async function doplnitDoHistorieVzdalene(polozky) {
         await fetch(PUJCOVNA_API_URL, {
@@ -692,6 +734,23 @@
     let novaKomuOstatni = '';      // ručně zapsané jméno při volbě "Ostatní"
     let komuOstatniSeznam = [];    // dříve použitá jména pro našeptávání
 
+    // Sloučená jména: klíč = jméno malým písmem, hodnota = cílové jméno
+    let aliasMap = new Map();
+    function nastavitAliasMap(aliasy) {
+        aliasMap = new Map();
+        (aliasy || []).forEach(a => aliasMap.set(ocistitBunku(a.alias).toLowerCase(), ocistitBunku(a.cil)));
+    }
+    // Vrátí cílové jméno (řetězí sloučení, s ochranou proti cyklu)
+    function resolveKomu(jmeno) {
+        let j = ocistitBunku(jmeno);
+        for (let i = 0; i < 10; i++) {
+            const dalsi = aliasMap.get(j.toLowerCase());
+            if (!dalsi || dalsi.toLowerCase() === j.toLowerCase()) break;
+            j = dalsi;
+        }
+        return j;
+    }
+
     function escHtml(v) {
         return String(v === undefined || v === null ? '' : v)
             .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -709,10 +768,11 @@
 
     // Natáhne dříve zapsaná jména mimo střediska (z aktivních zápůjček i z historie) pro našeptávač
     async function nactiKomuOstatniSeznam() {
-        const [zapujcky, historie] = await Promise.all([nactiZapujckyZUloziste(), nactiHistoriiZUloziste()]);
+        const [zapujcky, historie, aliasy] = await Promise.all([nactiZapujckyZUloziste(), nactiHistoriiZUloziste(), nactiAliasyZUloziste()]);
+        if (aliasy) nastavitAliasMap(aliasy);
         const videno = new Map();
         const pridej = jmeno => {
-            const j = ocistitBunku(jmeno);
+            const j = resolveKomu(jmeno);
             if (!j) return;
             const klic = j.toLowerCase();
             if (KOMU_STREDISKA.some(s => s.toLowerCase() === klic)) return;
@@ -1019,6 +1079,7 @@
 
     // --- Statistika (historie zápůjček podle "Komu", nástroje sloučené podle názvu + délky) ---
     let statistikaObdobi = 'vse';
+    let statistikaSlucovani = false; // je otevřený panel pro slučování jmen
     let statistikaKomu = ''; // '' = všechna střediska, jinak malým písmem klíč vybraného "Komu"
     let statistikaData = null; // { historie, zapujcky } - drží se kvůli přepínání období bez nového stahování
 
@@ -1026,19 +1087,59 @@
         const wrap = document.getElementById('pujcovna-tab-content');
         wrap.innerHTML = `<div class="status-msg">Načítám historii...</div>`;
 
-        const [historie, zapujcky] = await Promise.all([nactiHistoriiZUloziste(), nactiZapujckyZUloziste(), nacistNastrojeDB()]);
+        const [historie, zapujcky, aliasy] = await Promise.all([nactiHistoriiZUloziste(), nactiZapujckyZUloziste(), nactiAliasyZUloziste(), nacistNastrojeDB()]);
 
         if (historie === null) {
             wrap.innerHTML = `<div class="msg red" style="display:block">Historii se nepodařilo načíst. Zkontrolujte připojení a že je v Apps Scriptu nasazená nová verze skriptu (s listem „Historie“).</div>`;
             return;
         }
-        statistikaData = { historie, zapujcky: zapujcky || [] };
+        nastavitAliasMap(aliasy);
+        statistikaData = { historie, zapujcky: zapujcky || [], aliasy: aliasy || [], aliasyDostupne: aliasy !== null };
         vykresliStatistiku();
     }
 
     function zmenitObdobiStatistiky(hodnota) {
         statistikaObdobi = hodnota;
         vykresliStatistiku();
+    }
+
+    function prepnoutSlucovani() {
+        statistikaSlucovani = !statistikaSlucovani;
+        vykresliStatistiku();
+    }
+
+    // Po zaškrtnutí jména nabídne jako cílový název to první zaškrtnuté (pokud pole ještě není vyplněné)
+    function predvyplnitCilSlouceni() {
+        const cil = document.getElementById('stat-merge-cil');
+        if (!cil || cil.dataset.rucne === '1') return;
+        const prvni = document.querySelector('.stat-merge-cb:checked');
+        cil.value = prvni ? prvni.dataset.jmeno : '';
+    }
+
+    async function provestSlouceni() {
+        const errEl = document.getElementById('stat-merge-err');
+        const vybrana = Array.from(document.querySelectorAll('.stat-merge-cb:checked')).map(cb => cb.dataset.jmeno);
+        const cilRaw = ocistitBunku(document.getElementById('stat-merge-cil').value);
+        if (vybrana.length === 0) { errEl.textContent = 'Zaškrtněte alespoň jedno jméno.'; return; }
+        if (!cilRaw) { errEl.textContent = 'Napište název, pod který se jména sloučí.'; return; }
+
+        const cil = resolveKomu(cilRaw);
+        const ktereSlucit = vybrana.filter(j => j.toLowerCase() !== cil.toLowerCase());
+        if (ktereSlucit.length === 0) { errEl.textContent = 'Není co slučovat – zvolený název je totéž jméno.'; return; }
+
+        errEl.textContent = 'Ukládám...';
+        try {
+            for (const j of ktereSlucit) await ulozitAliasVzdalene(j, cil);
+        } catch (e) { /* skutečný stav ukáže načtení níže */ }
+        statistikaSlucovani = false;
+        zobrazStatistika();
+    }
+
+    async function zrusitSlouceni(index) {
+        const a = statistikaData && statistikaData.aliasy[index];
+        if (!a) return;
+        try { await smazatAliasVzdalene(a.alias); } catch (e) { /* viz výše */ }
+        zobrazStatistika();
     }
 
     function zmenitKomuStatistiky(hodnota) {
@@ -1076,7 +1177,7 @@
         const nyni = new Date();
 
         radky.forEach(r => {
-            const komuNazev = ocistitBunku(r.komu) || '(neuvedeno)';
+            const komuNazev = resolveKomu(r.komu) || '(neuvedeno)';
             const komuKlic = komuNazev.toLowerCase();
             const { nazev, delka } = popisNastroje(r);
             const klic = `${nazev.toLowerCase()}|${delka}`;
@@ -1122,10 +1223,46 @@
 
         // Nabídka "Komu": nejdřív střediska, pak ostatní jména z historie (bez ohledu na velikost písmen)
         const komuMoznosti = new Map();
-        KOMU_STREDISKA.forEach(k => komuMoznosti.set(k.toLowerCase(), k));
-        historie.map(r => ocistitBunku(r.komu)).filter(Boolean)
+        KOMU_STREDISKA.forEach(k => { const j = resolveKomu(k); komuMoznosti.set(j.toLowerCase(), j); });
+        historie.map(r => resolveKomu(r.komu)).filter(Boolean)
             .sort((a, b) => a.localeCompare(b, 'cs'))
             .forEach(k => { if (!komuMoznosti.has(k.toLowerCase())) komuMoznosti.set(k.toLowerCase(), k); });
+
+        if (statistikaKomu && !komuMoznosti.has(statistikaKomu)) statistikaKomu = '';
+
+        // Panel pro slučování jmen (jen s heslem a jen s novou verzí skriptu)
+        const muzeSlucovat = !pujcovnaReadOnly && statistikaData.aliasyDostupne;
+        let slucovaniHtml = '';
+        if (muzeSlucovat && statistikaSlucovani) {
+            // Jména se počítají bez ohledu na velikost písmen (zobrazí se první zapsaná podoba)
+            const skupinyJmen = new Map();
+            historie.forEach(r => {
+                const j = resolveKomu(r.komu);
+                if (!j) return;
+                const klic = j.toLowerCase();
+                if (!skupinyJmen.has(klic)) skupinyJmen.set(klic, { nazev: j, pocet: 0 });
+                skupinyJmen.get(klic).pocet++;
+            });
+            const pocty = new Map(Array.from(skupinyJmen.values()).map(g => [g.nazev, g.pocet]));
+            const jmena = Array.from(pocty.keys()).sort((a, b) => a.localeCompare(b, 'cs'));
+            const aliasy = statistikaData.aliasy;
+            slucovaniHtml = `
+                <div class="stat-merge-panel">
+                    <h4>🔗 Sloučit jména</h4>
+                    <div class="stat-merge-help">Zaškrtněte jména, která patří k sobě (např. „LH tech“ a „LH technic“), napište společný název a potvrďte. Historie se nemění, sloučení jde kdykoli zrušit.</div>
+                    <div class="stat-merge-list">
+                        ${jmena.map(j => `<label class="stat-merge-item"><input type="checkbox" class="stat-merge-cb" data-jmeno="${escHtml(j)}" onchange="predvyplnitCilSlouceni()"> ${escHtml(j)} <span class="pocet">${pocty.get(j)}×</span></label>`).join('') || '<div class="stat-meta">Zatím není co slučovat.</div>'}
+                    </div>
+                    <div class="stat-merge-target">
+                        <input type="text" id="stat-merge-cil" list="stat-merge-cil-seznam" autocomplete="off" placeholder="Sloučit pod název…" oninput="this.dataset.rucne='1'">
+                        <datalist id="stat-merge-cil-seznam">${jmena.map(j => `<option value="${escHtml(j)}"></option>`).join('')}</datalist>
+                        <button type="button" onclick="provestSlouceni()">Sloučit vybrané</button>
+                    </div>
+                    <div class="stat-merge-err" id="stat-merge-err"></div>
+                    ${aliasy.length ? `<div class="stat-meta" style="margin-top:10px;">Aktuální sloučení:</div>${aliasy.map((a, i) => `
+                        <div class="stat-alias-row"><span>${escHtml(a.alias)} → <strong>${escHtml(a.cil)}</strong></span><button type="button" onclick="zrusitSlouceni(${i})">Zrušit</button></div>`).join('')}` : ''}
+                </div>`;
+        }
 
         const obdobiHtml = `
             <div class="stat-toolbar">
@@ -1141,7 +1278,9 @@
                     <option value="6" ${statistikaObdobi === '6' ? 'selected' : ''}>Posledních 6 měsíců</option>
                     <option value="3" ${statistikaObdobi === '3' ? 'selected' : ''}>Poslední 3 měsíce</option>
                 </select>
-            </div>`;
+                ${muzeSlucovat ? `<button type="button" class="stat-merge-btn ${statistikaSlucovani ? 'active' : ''}" onclick="prepnoutSlucovani()">🔗 Sloučit jména</button>` : ''}
+            </div>
+            ${slucovaniHtml}`;
 
         if (radky.length === 0) {
             wrap.innerHTML = `${bannerHtml}${obdobiHtml}<div class="status-msg">V tomto období zatím nejsou v historii žádné zápůjčky.${historie.length === 0 ? ' Historie se plní od nasazení nové verze.' : ''}</div>`;
