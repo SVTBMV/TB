@@ -41,6 +41,11 @@
         .sablona-radek:hover { border-color: var(--accent); background: #2d3a6d; }
         .sablona-cislo { font-size: 0.8rem; color: #94a3b8; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
         .sablona-zakaznik { font-size: 1.2rem; color: #fff; }
+        .sablony-podnadpis { color: #94a3b8; font-size: 0.85rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; margin: 18px 0 10px 4px; }
+        .sablony-prochazet-btn { width: 100%; background: none; border: 1px solid var(--border); color: #cbd5e1; border-radius: 12px; padding: 14px; font-size: 1rem; font-weight: 700; cursor: pointer; margin-bottom: 18px; }
+        .sablony-prochazet-btn:hover { border-color: var(--accent); color: var(--accent); }
+        .sablona-radek-mala { padding: 12px 16px; margin-bottom: 8px; }
+        .sablona-radek-mala .sablona-zakaznik { font-size: 1.05rem; }
         .sablony-hledani { display: flex; gap: 10px; margin-bottom: 18px; }
         .sablony-hledani input { flex: 1; min-width: 0; background: var(--card); border: 1px solid var(--border); padding: 16px; border-radius: 12px; color: white; outline: none; box-sizing: border-box; font-size: 1.1rem; }
         .sablony-hledani input:focus { border-color: var(--accent); }
@@ -595,6 +600,8 @@
     let sablonyData = [];          // [{ cislo, zakaznik }] aktuálně otevřené složky
     let sablonyNacteno = false;
     let sablonySlozka = null;
+    let sablonyRezim = 'hledat';   // 'hledat' | 'prochazet'
+    let sablonyZakaznici = [];     // [{ nazev, cisla: [] }] pro režim Procházet
 
     function zobrazSablony(slozka) {
         const app = document.getElementById('sablony-app');
@@ -614,7 +621,9 @@
                     onkeydown="if(event.key==='Enter') hledatSablonu()">
                 <button type="button" onclick="hledatSablonu()">Hledat</button>
             </div>
+            <button type="button" class="sablony-prochazet-btn" onclick="prochazetSablony()">📂 Procházet podle zákazníka</button>
             <div id="sablony-vysledek"></div>`;
+        sablonyRezim = 'hledat';
         nactiSablony(slozka);
     }
 
@@ -639,11 +648,14 @@
             return;
         }
         // Pokud uživatel mezitím už něco napsal a hledal, výsledek se po načtení doplní
+        if (sablonySlozka !== slozka) return;
+        if (sablonyRezim === 'prochazet') { prochazetSablony(); return; }
         const inp = document.getElementById('sablony-search');
-        if (inp && inp.value.trim() && sablonySlozka === slozka) hledatSablonu();
+        if (inp && inp.value.trim()) hledatSablonu();
     }
 
     function hledatSablonu() {
+        sablonyRezim = 'hledat';
         const inp = document.getElementById('sablony-search');
         const vys = document.getElementById('sablony-vysledek');
         if (!inp || !vys) return;
@@ -651,18 +663,82 @@
         if (!q) { vys.innerHTML = ''; return; }
         if (!sablonyNacteno) { vys.innerHTML = `<div class="status-msg">Načítám tabulku šablon…</div>`; return; }
 
-        const nalezene = sablonyData.filter(r => r.cislo.toLowerCase() === q);
-        if (nalezene.length === 0) {
-            vys.innerHTML = `<div class="msg red" style="display:block"><strong>Šablona nenalezena</strong></div>`;
-            return;
-        }
-        vys.innerHTML = nalezene.map(r => `
+        const presne = sablonyData.filter(r => r.cislo.toLowerCase() === q);
+        const castecne = sablonyData
+            .filter(r => r.cislo.toLowerCase() !== q && r.cislo.toLowerCase().includes(q))
+            .sort((a, b) => a.cislo.localeCompare(b.cislo, 'cs', { numeric: true }));
+        const MAX_CASTECNYCH = 20; // ať se nenačítá a nevykresluje zbytečně moc
+
+        const radek = r => `
             <div class="sablona-radek">
                 <div>
                     <div class="sablona-cislo">Šablona č. ${escHtml(r.cislo)}</div>
                     <div class="sablona-zakaznik">Zákazník: <strong>${escHtml(r.zakaznik || '(neuvedeno)')}</strong></div>
                 </div>
-            </div>`).join('');
+            </div>`;
+
+        if (presne.length === 0 && castecne.length === 0) {
+            vys.innerHTML = `<div class="msg red" style="display:block"><strong>Šablona nenalezena</strong></div>`;
+            return;
+        }
+
+        let html = '';
+        if (presne.length > 0) {
+            html += presne.map(radek).join('');
+        } else {
+            html += `<div class="msg red" style="display:block"><strong>Šablona nenalezena</strong></div>`;
+        }
+        if (castecne.length > 0) {
+            html += `<div class="sablony-podnadpis">Částečná shoda (${castecne.length})</div>`;
+            html += castecne.slice(0, MAX_CASTECNYCH).map(radek).join('');
+            if (castecne.length > MAX_CASTECNYCH) {
+                html += `<div class="status-msg" style="margin-top:8px;">…a dalších ${castecne.length - MAX_CASTECNYCH}. Napište víc číslic pro upřesnění.</div>`;
+            }
+        }
+        vys.innerHTML = html;
+    }
+
+    // Procházení: šablony rozdělené do složek podle zákazníka
+    function prochazetSablony() {
+        sablonyRezim = 'prochazet';
+        const vys = document.getElementById('sablony-vysledek');
+        if (!vys) return;
+        if (!sablonyNacteno) { vys.innerHTML = `<div class="status-msg">Načítám tabulku šablon…</div>`; return; }
+        if (sablonyData.length === 0) { vys.innerHTML = `<div class="status-msg">V tabulce zatím nejsou žádné šablony.</div>`; return; }
+
+        const skupiny = new Map();
+        sablonyData.forEach(r => {
+            const nazev = r.zakaznik || '(bez zákazníka)';
+            const klic = nazev.toLowerCase();
+            if (!skupiny.has(klic)) skupiny.set(klic, { nazev, cisla: [] });
+            skupiny.get(klic).cisla.push(r.cislo);
+        });
+        sablonyZakaznici = Array.from(skupiny.values()).sort((a, b) => a.nazev.localeCompare(b.nazev, 'cs'));
+        sablonyZakaznici.forEach(z => z.cisla.sort((a, b) => a.localeCompare(b, 'cs', { numeric: true })));
+
+        vys.innerHTML = `
+            <div class="souhrn-info">${sablonyZakaznici.length} zákazníků, ${sablonyData.length} šablon celkem. Klikněte na složku zákazníka.</div>
+            ${sablonyZakaznici.map((z, i) => `
+                <div class="category-section">
+                    <div class="category-header" onclick="otevritSlozkuZakaznika(this.parentElement, ${i})">
+                        <div class="souhrn-header-left">
+                            <div class="category-title">📁 ${escHtml(z.nazev)}</div>
+                            <div class="souhrn-header-stats"><span class="souhrn-stat">${z.cisla.length} ${z.cisla.length === 1 ? 'šablona' : (z.cisla.length < 5 ? 'šablony' : 'šablon')}</span></div>
+                        </div>
+                    </div>
+                    <div class="category-content"></div>
+                </div>`).join('')}`;
+    }
+
+    // Obsah složky se vykreslí až při prvním otevření
+    function otevritSlozkuZakaznika(sekce, index) {
+        sekce.classList.toggle('open');
+        const obsah = sekce.querySelector('.category-content');
+        const z = sablonyZakaznici[index];
+        if (sekce.classList.contains('open') && obsah && !obsah.dataset.hotovo && z) {
+            obsah.innerHTML = z.cisla.map(c => `<div class="sablona-radek sablona-radek-mala"><div class="sablona-zakaznik">Šablona č. <strong>${escHtml(c)}</strong></div></div>`).join('');
+            obsah.dataset.hotovo = '1';
+        }
     }
 
     // --- NOVÁ LOGIKA PRO PŘEHLED STROJŮ ---
