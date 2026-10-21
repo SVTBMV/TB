@@ -691,7 +691,7 @@
         if (presne.length > 0) {
             html += presne.map(radek).join('');
         } else {
-            html += `<div class="msg red" style="display:block"><strong>Šablona nenalezena</strong></div>`;
+            html += `<div class="msg amber" style="display:block;margin-bottom:12px;"><strong>Nenalezena šablona s přesným číslem, níže jsou nejlepší shody.</strong></div>`;
         }
         if (castecne.length > 0) {
             html += `<div class="sablony-podnadpis">Částečná shoda (${castecne.length})</div>`;
