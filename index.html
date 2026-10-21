@@ -46,6 +46,7 @@
         .sablony-prochazet-btn:hover { border-color: var(--accent); color: var(--accent); }
         .sablona-radek-mala { padding: 12px 16px; margin-bottom: 8px; }
         .sablona-radek-mala .sablona-zakaznik { font-size: 1.05rem; }
+        .sablony-celkem { color: var(--accent); font-weight: 700; font-size: 1rem; margin: -8px 0 16px 0; }
         .sablony-hledani { display: flex; gap: 10px; margin-bottom: 18px; }
         .sablony-hledani input { flex: 1; min-width: 0; background: var(--card); border: 1px solid var(--border); padding: 16px; border-radius: 12px; color: white; outline: none; box-sizing: border-box; font-size: 1.1rem; }
         .sablony-hledani input:focus { border-color: var(--accent); }
@@ -616,6 +617,7 @@
         app.innerHTML = `
             <div class="back-to-hub" onclick="zobrazSablony(null)">← Šablony</div>
             <div class="sablony-nadpis">📁 ${escHtml(slozka)}</div>
+            <div class="sablony-celkem" id="sablony-celkem">Celkem … šablon v databázi</div>
             <div class="sablony-hledani">
                 <input type="text" id="sablony-search" placeholder="🔍 Číslo šablony…" autocomplete="off"
                     onkeydown="if(event.key==='Enter') hledatSablonu()">
@@ -639,8 +641,11 @@
             sablonyData = text.split(/\r?\n/)
                 .map(r => r.split('\t'))
                 .map(c => ({ cislo: ocistitBunku(c[0]), zakaznik: ocistitBunku(c[1]) }))
-                .filter(r => r.cislo !== '');
+                .filter(r => r.cislo !== '')
+                .filter((r, i) => !(i === 0 && /šablon|cislo|číslo/i.test(r.cislo)));
             sablonyNacteno = true;
+            const ce = document.getElementById('sablony-celkem');
+            if (ce) { const n = sablonyData.length; ce.textContent = `Celkem ${n} ${n === 1 ? 'šablona' : (n >= 2 && n <= 4 ? 'šablony' : 'šablon')} v databázi`; }
         } catch (e) {
             if (sablonySlozka === slozka && vys) {
                 vys.innerHTML = `<div class="msg red" style="display:block">Nepodařilo se načíst tabulku šablon. Zkontrolujte připojení a zkuste to znovu.</div>`;
